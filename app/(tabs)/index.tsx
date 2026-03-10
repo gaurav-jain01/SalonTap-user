@@ -1,98 +1,109 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+import React from 'react';
+import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, Spacing, Shadows, Typography, GlobalStyles } from '@/constants/theme';
+import { AutoScrollBanner } from '@/components/auto-scroll-banner';
+import { SectionHeader } from '@/components/section-header';
+import { CategoryCircle, CategoryItem } from '@/components/category-circle';
+import { CircleIconButton } from '@/components/circle-icon-button';
 
-import { HelloWave } from '@/components/hello-wave';
-import ParallaxScrollView from '@/components/parallax-scroll-view';
-import { ThemedText } from '@/components/themed-text';
-import { ThemedView } from '@/components/themed-view';
-import { Link } from 'expo-router';
+const BANNERS = [
+  { id: '1', image: require('@/assets/images/banner1.png') },
+  { id: '2', image: require('@/assets/images/banner2.png') },
+  { id: '3', image: require('@/assets/images/banner3.png') },
+  { id: '4', image: require('@/assets/images/banner4.png') },
+];
+
+const CATEGORIES: CategoryItem[] = [
+  { id: '1', name: 'Haircut', icon: 'content-cut', color: Colors.category.haircut.color, bgColor: Colors.category.haircut.bg },
+  { id: '2', name: 'Massage', icon: 'spa', color: Colors.category.massage.color, bgColor: Colors.category.massage.bg },
+  { id: '3', name: 'Coloring', icon: 'spray', color: Colors.category.coloring.color, bgColor: Colors.category.coloring.bg },
+  { id: '4', name: 'Facial', icon: 'face-woman-outline', color: Colors.category.facial.color, bgColor: Colors.category.facial.bg },
+  { id: '5', name: 'Makeup', icon: 'lipstick', color: Colors.category.makeup.color, bgColor: Colors.category.makeup.bg },
+  { id: '6', name: 'Nails', icon: 'hand-wash-outline', color: Colors.category.nails.color, bgColor: Colors.category.nails.bg },
+];
 
 export default function HomeScreen() {
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#A1CEDC', dark: '#1D3D47' }}
-      headerImage={
-        <Image
-          source={require('@/assets/images/partial-react-logo.png')}
-          style={styles.reactLogo}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Welcome!</ThemedText>
-        <HelloWave />
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 1: Try it</ThemedText>
-        <ThemedText>
-          Edit <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> to see changes.
-          Press{' '}
-          <ThemedText type="defaultSemiBold">
-            {Platform.select({
-              ios: 'cmd + d',
-              android: 'cmd + m',
-              web: 'F12',
-            })}
-          </ThemedText>{' '}
-          to open developer tools.
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <Link href="/modal">
-          <Link.Trigger>
-            <ThemedText type="subtitle">Step 2: Explore</ThemedText>
-          </Link.Trigger>
-          <Link.Preview />
-          <Link.Menu>
-            <Link.MenuAction title="Action" icon="cube" onPress={() => alert('Action pressed')} />
-            <Link.MenuAction
-              title="Share"
-              icon="square.and.arrow.up"
-              onPress={() => alert('Share pressed')}
-            />
-            <Link.Menu title="More" icon="ellipsis">
-              <Link.MenuAction
-                title="Delete"
-                icon="trash"
-                destructive
-                onPress={() => alert('Delete pressed')}
-              />
-            </Link.Menu>
-          </Link.Menu>
-        </Link>
+    <SafeAreaView style={GlobalStyles.screenContainer} edges={['top']}>
+      {/* ─── Header ──────────────────────────── */}
+      <View style={styles.header}>
+        <View style={styles.leftSection}>
+          <Text style={styles.welcomeText}>Hi, User</Text>
+          <TouchableOpacity style={styles.locationButton} activeOpacity={0.7}>
+            <Ionicons name="location-sharp" size={16} color={Colors.primary} />
+            <Text style={styles.locationText} numberOfLines={1}>
+              Indore, MR 10 Road
+            </Text>
+            <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
+          </TouchableOpacity>
+        </View>
 
-        <ThemedText>
-          {`Tap the Explore tab to learn more about what's included in this starter app.`}
-        </ThemedText>
-      </ThemedView>
-      <ThemedView style={styles.stepContainer}>
-        <ThemedText type="subtitle">Step 3: Get a fresh start</ThemedText>
-        <ThemedText>
-          {`When you're ready, run `}
-          <ThemedText type="defaultSemiBold">npm run reset-project</ThemedText> to get a fresh{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> directory. This will move the current{' '}
-          <ThemedText type="defaultSemiBold">app</ThemedText> to{' '}
-          <ThemedText type="defaultSemiBold">app-example</ThemedText>.
-        </ThemedText>
-      </ThemedView>
-    </ParallaxScrollView>
+        <View style={styles.rightSection}>
+          <CircleIconButton name="wallet-outline" />
+          <CircleIconButton name="person-outline" />
+        </View>
+      </View>
+
+      {/* ─── Content ─────────────────────────── */}
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={GlobalStyles.scrollContent}>
+        {/* Auto Scroll Banner */}
+        <AutoScrollBanner banners={BANNERS} />
+
+        {/* Categories Section */}
+        <SectionHeader title="Categories" />
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoriesContent}
+        >
+          {CATEGORIES.map((cat) => (
+            <CategoryCircle key={cat.id} item={cat} />
+          ))}
+        </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  titleContainer: {
+  header: {
+    ...GlobalStyles.rowBetween,
+    paddingHorizontal: Spacing.xl,
+    paddingVertical: 15,
+    backgroundColor: Colors.white,
+    ...Shadows.md,
+  },
+  leftSection: {
+    flex: 1,
+  },
+  welcomeText: {
+    ...Typography.heading,
+  },
+  locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    marginTop: Spacing.xs,
+    backgroundColor: Colors.backgroundTertiary,
+    alignSelf: 'flex-start',
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.xs,
+    borderRadius: 20,
   },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
+  locationText: {
+    ...Typography.caption,
+    marginHorizontal: Spacing.xs,
+    maxWidth: 150,
   },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  categoriesContent: {
+    paddingHorizontal: 15,
+    paddingBottom: Spacing.xl,
+    gap: 15,
   },
 });
