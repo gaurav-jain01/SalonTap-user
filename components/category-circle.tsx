@@ -20,7 +20,7 @@ export function CategoryCircle({ item, onPress }: CategoryCircleProps) {
   return (
     <TouchableOpacity style={styles.container} activeOpacity={0.7} onPress={onPress}>
       <View style={[styles.circle, { backgroundColor: item.bgColor }]}>
-        <MaterialCommunityIcons name={item.icon as any} size={32} color={item.color} />
+        <MaterialCommunityIcons name={item.icon as any} size={26} color={item.color} />
       </View>
       <Text style={styles.label}>{item.name}</Text>
     </TouchableOpacity>
@@ -33,9 +33,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   circle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 65,
+    height: 65,
+    borderRadius: 32.5,
     alignItems: 'center',
     justifyContent: 'center',
   },

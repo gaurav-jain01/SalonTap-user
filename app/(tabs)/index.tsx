@@ -1,12 +1,14 @@
-import React from 'react';
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Shadows, Typography, GlobalStyles } from '@/constants/theme';
 import { AutoScrollBanner } from '@/components/auto-scroll-banner';
-import { SectionHeader } from '@/components/section-header';
 import { CategoryCircle, CategoryItem } from '@/components/category-circle';
 import { CircleIconButton } from '@/components/circle-icon-button';
+import { GenderToggle, Gender } from '@/components/gender-toggle';
+import { SectionHeader } from '@/components/section-header';
+import { ServiceCard, ServiceItem } from '@/components/service-card';
+import { Colors, GlobalStyles, Shadows, Spacing, Typography } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 const BANNERS = [
   { id: '1', image: require('@/assets/images/banner1.png') },
@@ -15,16 +17,66 @@ const BANNERS = [
   { id: '4', image: require('@/assets/images/banner4.png') },
 ];
 
-const CATEGORIES: CategoryItem[] = [
-  { id: '1', name: 'Haircut', icon: 'content-cut', color: Colors.category.haircut.color, bgColor: Colors.category.haircut.bg },
-  { id: '2', name: 'Massage', icon: 'spa', color: Colors.category.massage.color, bgColor: Colors.category.massage.bg },
-  { id: '3', name: 'Coloring', icon: 'spray', color: Colors.category.coloring.color, bgColor: Colors.category.coloring.bg },
-  { id: '4', name: 'Facial', icon: 'face-woman-outline', color: Colors.category.facial.color, bgColor: Colors.category.facial.bg },
-  { id: '5', name: 'Makeup', icon: 'lipstick', color: Colors.category.makeup.color, bgColor: Colors.category.makeup.bg },
-  { id: '6', name: 'Nails', icon: 'hand-wash-outline', color: Colors.category.nails.color, bgColor: Colors.category.nails.bg },
+const CATEGORIES: (CategoryItem & { gender: Gender | 'unisex' })[] = [
+  { id: '1', name: 'Haircut', icon: 'content-cut', color: Colors.category.haircut.color, bgColor: Colors.category.haircut.bg, gender: 'men' },
+  { id: '2', name: 'Shaving', icon: 'razor-sharp', color: '#607D8B', bgColor: '#ECEFF1', gender: 'men' },
+  { id: '3', name: 'Massage', icon: 'spa', color: Colors.category.massage.color, bgColor: Colors.category.massage.bg, gender: 'unisex' },
+  { id: '4', name: 'Coloring', icon: 'spray', color: Colors.category.coloring.color, bgColor: Colors.category.coloring.bg, gender: 'unisex' },
+  { id: '5', name: 'Facial', icon: 'face-woman-outline', color: Colors.category.facial.color, bgColor: Colors.category.facial.bg, gender: 'women' },
+  { id: '6', name: 'Makeup', icon: 'lipstick', color: Colors.category.makeup.color, bgColor: Colors.category.makeup.bg, gender: 'women' },
+  { id: '7', name: 'Nails', icon: 'hand-wash-outline', color: Colors.category.nails.color, bgColor: Colors.category.nails.bg, gender: 'women' },
+  { id: '8', name: 'Beard', icon: 'face-man', color: '#795548', bgColor: '#EFEBE9', gender: 'men' },
+];
+
+const SERVICES: (ServiceItem & { gender: Gender | 'unisex' })[] = [
+  {
+    id: '1', name: 'Premium Haircut', description: 'Expert styling with premium products for a fresh new look.',
+    regularPrice: '₹799', salePrice: '₹499', rating: 4.8,
+    image: require('@/assets/images/service_haircut.png'),
+    tags: ['Trending', 'Top Rated'], gender: 'men',
+  },
+  {
+    id: '2', name: 'Deep Tissue Massage', description: 'Relaxing full body massage to relieve stress and tension.',
+    regularPrice: '₹1,799', salePrice: '₹1,299', rating: 4.9,
+    image: require('@/assets/images/service_massage.png'),
+    tags: ['Best Seller', 'Spa'], gender: 'unisex',
+  },
+  {
+    id: '3', name: 'Gold Facial', description: 'Luxurious gold-infused facial for radiant, glowing skin.',
+    regularPrice: '₹1,299', salePrice: '₹899', rating: 4.7,
+    image: require('@/assets/images/service_facial.png'),
+    tags: ['Popular', 'Skin Care'], gender: 'women',
+  },
+  {
+    id: '4', name: 'Nail Art', description: 'Creative and trendy nail designs by expert artists.',
+    regularPrice: '₹999', salePrice: '₹699', rating: 4.6,
+    image: require('@/assets/images/service_nails.png'),
+    tags: ['New', 'Creative'], gender: 'women',
+  },
+  {
+    id: '5', name: 'Beard Styling', description: 'Professional beard grooming and shaping for a sharp look.',
+    regularPrice: '₹599', salePrice: '₹349', rating: 4.8,
+    image: require('@/assets/images/service_haircut.png'),
+    tags: ['Trending', 'Men\'s Special'], gender: 'men',
+  },
+  {
+    id: '6', name: 'Bridal Makeup', description: 'Complete bridal makeup package for your special day.',
+    regularPrice: '₹5,999', salePrice: '₹4,499', rating: 4.9,
+    image: require('@/assets/images/service_facial.png'),
+    tags: ['Premium', 'Bridal'], gender: 'women',
+  },
 ];
 
 export default function HomeScreen() {
+  const [selectedGender, setSelectedGender] = useState<Gender>('men');
+
+  const filteredCategories = CATEGORIES.filter(
+    (c) => c.gender === selectedGender || c.gender === 'unisex'
+  );
+  const filteredServices = SERVICES.filter(
+    (s) => s.gender === selectedGender || s.gender === 'unisex'
+  );
+
   return (
     <SafeAreaView style={GlobalStyles.screenContainer} edges={['top']}>
       {/* ─── Header ──────────────────────────── */}
@@ -47,7 +99,10 @@ export default function HomeScreen() {
       </View>
 
       {/* ─── Content ─────────────────────────── */}
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={GlobalStyles.scrollContent}>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+        {/* Gender Toggle */}
+        <GenderToggle selected={selectedGender} onChange={setSelectedGender} />
+
         {/* Auto Scroll Banner */}
         <AutoScrollBanner banners={BANNERS} />
 
@@ -58,10 +113,18 @@ export default function HomeScreen() {
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContent}
         >
-          {CATEGORIES.map((cat) => (
+          {filteredCategories.map((cat) => (
             <CategoryCircle key={cat.id} item={cat} />
           ))}
         </ScrollView>
+
+        {/* Popular Services Section */}
+        <SectionHeader title="Popular Services" />
+        <View style={styles.servicesGrid}>
+          {filteredServices.map((service) => (
+            <ServiceCard key={service.id} item={service} />
+          ))}
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -103,7 +166,19 @@ const styles = StyleSheet.create({
   },
   categoriesContent: {
     paddingHorizontal: 15,
+    paddingTop: 16,
+    paddingBottom: Spacing.md,
+    gap: 8,
+  },
+  scrollContent: {
     paddingBottom: Spacing.xl,
-    gap: 15,
+    backgroundColor: Colors.backgroundSecondary,
+  },
+  servicesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingBottom: Spacing.xl,
   },
 });

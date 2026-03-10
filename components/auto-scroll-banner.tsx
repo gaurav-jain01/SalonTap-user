@@ -70,9 +70,9 @@ export function AutoScrollBanner({ banners, autoPlayInterval = 3000 }: AutoScrol
 
 const styles = StyleSheet.create({
   wrapper: {
-    height: 200,
-    marginTop: Spacing.lg,
-    marginBottom: Spacing.xl,
+    height: 210,
+    marginTop: Spacing.sm,
+    marginBottom: Spacing.sm,
   },
   bannerContainer: {
     width: width,
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
+    marginTop: 6,
     gap: 6,
   },
   paginationDot: {
