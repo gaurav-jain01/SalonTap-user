@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     marginHorizontal: Spacing.xl,
-    marginTop: Spacing.md,
-    marginBottom: Spacing.sm,
+    marginTop: Spacing.xl,
+    marginBottom: Spacing.md,
     backgroundColor: Colors.backgroundTertiary,
     borderRadius: 30,
     padding: 4,

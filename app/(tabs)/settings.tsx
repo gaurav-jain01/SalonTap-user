@@ -3,6 +3,8 @@ import { router } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Colors, Spacing, Shadows, BorderRadius, Typography } from '@/constants/theme';
+import { useToast } from '@/components/toast-provider';
+import { ScreenHeader } from '@/components/screen-header';
 
 const settingsOptions: { id: string; title: string; icon: keyof typeof Ionicons.glyphMap; route?: string; action?: string }[] = [
   { id: '1', title: 'Profile', icon: 'person-outline', route: '/profile' },
@@ -14,6 +16,7 @@ const settingsOptions: { id: string; title: string; icon: keyof typeof Ionicons.
 ];
 
 export default function SettingsScreen() {
+  const { showToast } = useToast();
 
   const handlePress = (item: any) => {
     if (item.route) {
@@ -24,16 +27,17 @@ export default function SettingsScreen() {
   const handleLogout = () => {
     Alert.alert("Logout", "Are you sure you want to logout?", [
       { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: () => console.log("Logout pressed") }
+      { text: "Logout", style: "destructive", onPress: () => {
+        showToast({ message: 'Logged out successfully!', type: 'success' });
+        router.replace('/login');
+      }}
     ]);
   };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Settings</Text>
-      </View>
+      <ScreenHeader title="Settings" />
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
 
@@ -56,7 +60,7 @@ export default function SettingsScreen() {
               <Ionicons name="location" size={20} color={Colors.primary} />
               <Text style={styles.sectionLabel}>Saved Addresses</Text>
             </View>
-            <TouchableOpacity activeOpacity={0.7}>
+            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/add-address')}>
               <Text style={styles.addText}>+ Add</Text>
             </TouchableOpacity>
           </View>
@@ -125,17 +129,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.backgroundSecondary,
-  },
-  header: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-    backgroundColor: Colors.white,
-    ...Shadows.md,
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: Colors.dark,
   },
   scrollContent: {
     padding: Spacing.xl,

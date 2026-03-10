@@ -4,9 +4,11 @@ import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing, GlobalStyles, Typography, Shadows, BorderRadius } from '@/constants/theme';
+import { useToast } from '@/components/toast-provider';
 
 export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const { showToast } = useToast();
 
   const handleSendOTP = () => {
     if (phoneNumber.length < 10) {
@@ -44,7 +46,10 @@ export default function LoginScreen() {
 
         <TouchableOpacity
           style={styles.skipButton}
-          onPress={() => router.replace('/(tabs)')}
+          onPress={() => {
+            showToast({ message: 'Welcome! You are exploring as a guest.', type: 'info' });
+            router.replace('/(tabs)');
+          }}
           activeOpacity={0.7}
         >
           <ThemedText style={styles.skipText}>Skip for now</ThemedText>

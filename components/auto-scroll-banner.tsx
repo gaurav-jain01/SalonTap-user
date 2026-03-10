@@ -71,12 +71,12 @@ export function AutoScrollBanner({ banners, autoPlayInterval = 3000 }: AutoScrol
 const styles = StyleSheet.create({
   wrapper: {
     height: 210,
-    marginTop: Spacing.sm,
-    marginBottom: Spacing.sm,
+    marginTop: 0,
+    marginBottom: Spacing.lg,
   },
   bannerContainer: {
     width: width,
-    paddingHorizontal: Spacing.lg,
+    paddingHorizontal: Spacing.xl,
     alignItems: 'center',
   },
   bannerImage: {

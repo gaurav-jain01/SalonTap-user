@@ -4,10 +4,12 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing, GlobalStyles, Typography, BorderRadius } from '@/constants/theme';
+import { useToast } from '@/components/toast-provider';
 
 export default function VerifyOTPScreen() {
   const { phone } = useLocalSearchParams();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const { showToast } = useToast();
   const inputs = useRef<Array<TextInput | null>>([]);
 
   const handleChange = (text: string, index: number) => {
@@ -29,11 +31,10 @@ export default function VerifyOTPScreen() {
   const handleVerify = () => {
     const enteredOtp = otp.join('');
     if (enteredOtp === '123456') {
-      Alert.alert('Success', 'Verification successful!', [
-        { text: 'OK', onPress: () => router.replace('/(tabs)') }
-      ]);
+      showToast({ message: 'Login successful! Welcome back.', type: 'success' });
+      router.replace('/(tabs)');
     } else {
-      Alert.alert('Error', 'Invalid OTP. Please try again.');
+      showToast({ message: 'Invalid OTP. Please try again.', type: 'error' });
     }
   };
 
