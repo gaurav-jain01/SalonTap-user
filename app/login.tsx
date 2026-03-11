@@ -1,24 +1,49 @@
 import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing, GlobalStyles, Typography, Shadows, BorderRadius } from '@/constants/theme';
 import { useToast } from '@/components/toast-provider';
+import { ApiEndpoints } from '@/constants/ApiEndpoints';
 
 export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
 
-  const handleSendOTP = () => {
+  const handleSendOTP = async () => {
     if (phoneNumber.length < 10) {
-      // Alert handled natively
+      showToast({ message: 'Please enter a valid phone number', type: 'error' });
       return;
     }
-    router.push({
-      pathname: '/verify-otp',
-      params: { phone: phoneNumber }
-    });
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(ApiEndpoints.auth.sendOtp, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mobile: phoneNumber }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast({ message: 'OTP sent successfully!', type: 'success' });
+        router.push({
+          pathname: '/verify-otp',
+          params: { phone: phoneNumber }
+        });
+      } else {
+        showToast({ message: data.message || 'Failed to send OTP', type: 'error' });
+      }
+    } catch (error) {
+      showToast({ message: 'Something went wrong. Please try again.', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -40,8 +65,16 @@ export default function LoginScreen() {
           />
         </View>
 
-        <TouchableOpacity style={GlobalStyles.primaryButton} onPress={handleSendOTP}>
-          <ThemedText style={GlobalStyles.primaryButtonText}>Send OTP</ThemedText>
+        <TouchableOpacity 
+          style={[GlobalStyles.primaryButton, isLoading && { opacity: 0.7 }]} 
+          onPress={handleSendOTP}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <ThemedText style={GlobalStyles.primaryButtonText}>Send OTP</ThemedText>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity

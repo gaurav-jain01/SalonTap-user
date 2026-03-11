@@ -1,14 +1,16 @@
 import { useState, useRef } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View, Alert } from 'react-native';
+import { StyleSheet, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors, Spacing, GlobalStyles, Typography, BorderRadius } from '@/constants/theme';
 import { useToast } from '@/components/toast-provider';
+import { ApiEndpoints } from '@/constants/ApiEndpoints';
 
 export default function VerifyOTPScreen() {
   const { phone } = useLocalSearchParams();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [isLoading, setIsLoading] = useState(false);
   const { showToast } = useToast();
   const inputs = useRef<Array<TextInput | null>>([]);
 
@@ -28,13 +30,61 @@ export default function VerifyOTPScreen() {
     }
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const enteredOtp = otp.join('');
-    if (enteredOtp === '123456') {
-      showToast({ message: 'Login successful! Welcome back.', type: 'success' });
-      router.replace('/(tabs)');
-    } else {
-      showToast({ message: 'Invalid OTP. Please try again.', type: 'error' });
+    if (enteredOtp.length < 6) {
+      showToast({ message: 'Please enter the complete 6-digit OTP', type: 'error' });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await fetch(ApiEndpoints.auth.verifyOtp, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+          mobile: phone,
+          otp: enteredOtp 
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        showToast({ message: 'Login successful! Welcome back.', type: 'success' });
+        router.replace('/(tabs)');
+      } else {
+        showToast({ message: data.message || 'Invalid OTP. Please try again.', type: 'error' });
+      }
+    } catch (error) {
+      showToast({ message: 'Something went wrong. Please try again.', type: 'error' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleResend = async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch(ApiEndpoints.auth.sendOtp, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ mobile: phone }),
+      });
+
+      if (response.ok) {
+        showToast({ message: 'OTP resent successfully!', type: 'success' });
+      } else {
+        showToast({ message: 'Failed to resend OTP', type: 'error' });
+      }
+    } catch (error) {
+      showToast({ message: 'Something went wrong', type: 'error' });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -62,12 +112,26 @@ export default function VerifyOTPScreen() {
           ))}
         </View>
 
-        <TouchableOpacity style={GlobalStyles.primaryButton} onPress={handleVerify}>
-          <ThemedText style={GlobalStyles.primaryButtonText}>Verify</ThemedText>
+        <TouchableOpacity 
+          style={[GlobalStyles.primaryButton, isLoading && { opacity: 0.7 }]} 
+          onPress={handleVerify}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color={Colors.white} />
+          ) : (
+            <ThemedText style={GlobalStyles.primaryButtonText}>Verify</ThemedText>
+          )}
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.resendButton}>
-          <ThemedText style={styles.resendText}>Didn't receive code? Resend</ThemedText>
+        <TouchableOpacity 
+          style={styles.resendButton} 
+          onPress={handleResend}
+          disabled={isLoading}
+        >
+          <ThemedText style={[styles.resendText, isLoading && { opacity: 0.5 }]}>
+            {isLoading ? 'Sending...' : "Didn't receive code? Resend"}
+          </ThemedText>
         </TouchableOpacity>
       </View>
     </ThemedView>
