@@ -1,11 +1,12 @@
-import { useState } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View, ActivityIndicator } from 'react-native';
-import { router } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing, GlobalStyles, Typography, Shadows, BorderRadius } from '@/constants/theme';
 import { useToast } from '@/components/toast-provider';
 import { ApiEndpoints } from '@/constants/ApiEndpoints';
+import { Colors, GlobalStyles, Spacing, Typography } from '@/constants/theme';
+import { apiClient } from '@/services/apiClient';
+import { router } from 'expo-router';
+import { useState } from 'react';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function LoginScreen() {
   const [phoneNumber, setPhoneNumber] = useState('');
@@ -13,38 +14,35 @@ export default function LoginScreen() {
   const { showToast } = useToast();
 
   const handleSendOTP = async () => {
-    if (phoneNumber.length < 10) {
-      showToast({ message: 'Please enter a valid phone number', type: 'error' });
-      return;
-    }
+ if (!/^[6-9]\d{9}$/.test(phoneNumber)) {
+    showToast({ message: 'Please enter a valid phone number', type: 'error' });
+    return;
+  }
 
-    try {
-      setIsLoading(true);
-      const response = await fetch(ApiEndpoints.auth.sendOtp, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mobile: phoneNumber }),
-      });
+  try {
+    setIsLoading(true);
 
-      const data = await response.json();
+    const response = await apiClient.post(ApiEndpoints.auth.sendOtp, {
+      mobile: phoneNumber,
+    });
 
-      if (response.ok) {
-        showToast({ message: 'OTP sent successfully!', type: 'success' });
-        router.push({
-          pathname: '/verify-otp',
-          params: { phone: phoneNumber }
-        });
-      } else {
-        showToast({ message: data.message || 'Failed to send OTP', type: 'error' });
-      }
-    } catch (error) {
-      showToast({ message: 'Something went wrong. Please try again.', type: 'error' });
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    showToast({ message: 'OTP sent successfully!', type: 'success' });
+
+    router.push({
+      pathname: '/verify-otp',
+      params: { phone: phoneNumber }
+    });
+
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.message || "Failed to send OTP";
+
+    showToast({ message, type: 'error' });
+
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <ThemedView style={GlobalStyles.screenContainer}>

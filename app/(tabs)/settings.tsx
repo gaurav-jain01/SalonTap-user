@@ -1,10 +1,12 @@
+import { ScreenHeader } from '@/components/screen-header';
+import { useToast } from '@/components/toast-provider';
+import { BorderRadius, Colors, Shadows, Spacing } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Colors, Spacing, Shadows, BorderRadius, Typography } from '@/constants/theme';
-import { useToast } from '@/components/toast-provider';
-import { ScreenHeader } from '@/components/screen-header';
+
 
 const settingsOptions: { id: string; title: string; icon: keyof typeof Ionicons.glyphMap; route?: string; action?: string }[] = [
   { id: '1', title: 'Profile', icon: 'person-outline', route: '/profile' },
@@ -25,14 +27,26 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Logout", style: "destructive", onPress: () => {
-        showToast({ message: 'Logged out successfully!', type: 'success' });
-        router.replace('/login');
-      }}
-    ]);
-  };
+  Alert.alert("Logout", "Are you sure you want to logout?", [
+    { text: "Cancel", style: "cancel" },
+    {
+      text: "Logout",
+      style: "destructive",
+      onPress: async () => {
+        try {
+          await AsyncStorage.removeItem("token");
+
+          showToast({ message: 'Logged out successfully!', type: 'success' });
+
+          router.replace('/login');
+
+        } catch (error) {
+          console.log("Logout error:", error);
+        }
+      }
+    }
+  ]);
+};
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>

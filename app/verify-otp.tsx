@@ -1,18 +1,29 @@
-import { useState, useRef } from 'react';
-import { StyleSheet, TextInput, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
-import { router, useLocalSearchParams } from 'expo-router';
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
-import { Colors, Spacing, GlobalStyles, Typography, BorderRadius } from '@/constants/theme';
 import { useToast } from '@/components/toast-provider';
 import { ApiEndpoints } from '@/constants/ApiEndpoints';
+import { BorderRadius, Colors, GlobalStyles, Spacing, Typography } from '@/constants/theme';
+import { apiClient } from '@/services/apiClient';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { router, useLocalSearchParams } from 'expo-router';
+import { useEffect, useRef, useState } from 'react';
+import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
 
 export default function VerifyOTPScreen() {
   const { phone } = useLocalSearchParams();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
   const [isLoading, setIsLoading] = useState(false);
+  const [timeLeft, setTimeLeft] = useState(30);
   const { showToast } = useToast();
   const inputs = useRef<Array<TextInput | null>>([]);
+
+  useEffect(() => {
+    if (timeLeft <= 0) return;
+    const timerId = setInterval(() => {
+      setTimeLeft((prev) => prev - 1);
+    }, 1000);
+    return () => clearInterval(timerId);
+  }, [timeLeft]);
 
   const handleChange = (text: string, index: number) => {
     const newOtp = [...otp];
@@ -39,50 +50,39 @@ export default function VerifyOTPScreen() {
 
     try {
       setIsLoading(true);
-      const response = await fetch(ApiEndpoints.auth.verifyOtp, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ 
-          mobile: phone,
-          otp: enteredOtp 
-        }),
+      const response = await apiClient.post(ApiEndpoints.auth.verifyOtp, {
+        mobile: phone,
+        otp: enteredOtp 
       });
 
-      const data = await response.json();
-
-      if (response.ok) {
-        showToast({ message: 'Login successful! Welcome back.', type: 'success' });
-        router.replace('/(tabs)');
-      } else {
-        showToast({ message: data.message || 'Invalid OTP. Please try again.', type: 'error' });
+      const token = response.data?.token;
+      
+      if (token) {
+        await AsyncStorage.setItem("token", token);
       }
-    } catch (error) {
-      showToast({ message: 'Something went wrong. Please try again.', type: 'error' });
+      showToast({ message: 'Login successful! Welcome back.', type: 'success' });
+      router.replace('/(tabs)');
+
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Invalid OTP. Please try again.';
+      showToast({ message, type: 'error' });
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleResend = async () => {
+    if (timeLeft > 0) return;
+
     try {
       setIsLoading(true);
-      const response = await fetch(ApiEndpoints.auth.sendOtp, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ mobile: phone }),
-      });
+      await apiClient.post(ApiEndpoints.auth.sendOtp, { mobile: phone });
 
-      if (response.ok) {
-        showToast({ message: 'OTP resent successfully!', type: 'success' });
-      } else {
-        showToast({ message: 'Failed to resend OTP', type: 'error' });
-      }
-    } catch (error) {
-      showToast({ message: 'Something went wrong', type: 'error' });
+      showToast({ message: 'OTP resent successfully!', type: 'success' });
+      setTimeLeft(30);
+    } catch (error: any) {
+      const message = error?.response?.data?.message || 'Failed to resend OTP';
+      showToast({ message, type: 'error' });
     } finally {
       setIsLoading(false);
     }
@@ -127,10 +127,14 @@ export default function VerifyOTPScreen() {
         <TouchableOpacity 
           style={styles.resendButton} 
           onPress={handleResend}
-          disabled={isLoading}
+          disabled={isLoading || timeLeft > 0}
         >
-          <ThemedText style={[styles.resendText, isLoading && { opacity: 0.5 }]}>
-            {isLoading ? 'Sending...' : "Didn't receive code? Resend"}
+          <ThemedText style={[styles.resendText, (isLoading || timeLeft > 0) && { opacity: 0.5 }]}>
+            {isLoading 
+              ? 'Sending...' 
+              : timeLeft > 0 
+                ? `Didn't receive code? Resend in ${timeLeft}s` 
+                : "Didn't receive code? Resend"}
           </ThemedText>
         </TouchableOpacity>
       </View>

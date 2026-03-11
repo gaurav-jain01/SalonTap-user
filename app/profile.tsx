@@ -1,19 +1,50 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Shadows, BorderRadius } from '@/constants/theme';
 import { ScreenHeader } from '@/components/screen-header';
-
-const PROFILE_FIELDS = [
-  { label: 'Full Name', value: 'Gaurav Jain', icon: 'person-outline' as const },
-  { label: 'Phone', value: '+91 98765 43210', icon: 'call-outline' as const },
-  { label: 'Email', value: 'gaurav@example.com', icon: 'mail-outline' as const },
-  { label: 'Gender', value: 'Male', icon: 'male-outline' as const },
-  { label: 'Date of Birth', value: '15 Jan 1998', icon: 'calendar-outline' as const },
-];
+import { ApiEndpoints } from '@/constants/ApiEndpoints';
+import { BorderRadius, Colors, Shadows, Spacing } from '@/constants/theme';
+import { apiClient } from '@/services/apiClient';
+import { Ionicons } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useEffect, useState } from 'react';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function ProfileScreen() {
+  
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(false);
+
+  const PROFILE_FIELDS = [
+  { label: 'Full Name', value: profile?.name || '-', icon: 'person-outline' as const },
+  { label: 'Phone', value: profile?.mobile || '-', icon: 'call-outline' as const },
+  { label: 'Email', value: profile?.email || '-', icon: 'mail-outline' as const },
+  { label: 'Gender', value: profile?.gender || '-', icon: 'male-outline' as const },
+];
+
+  const getProfile = async () => {
+  try {
+    const token = await AsyncStorage.getItem("token");
+
+    if (!token) {
+      return;
+    }
+
+    setLoading(true);
+
+    const response = await apiClient.get(ApiEndpoints.user.profile);
+
+    setProfile(response.data?.data);
+
+  } catch (error) {
+    console.log("Profile API error:", error);
+  } finally {
+    setLoading(false);
+  }
+};
+
+  useEffect(() => {
+    getProfile();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -25,8 +56,12 @@ export default function ProfileScreen() {
           <View style={styles.avatarCircle}>
             <Ionicons name="person" size={48} color={Colors.primary} />
           </View>
-          <Text style={styles.userName}>Gaurav Jain</Text>
-          <Text style={styles.userPhone}>+91 98765 43210</Text>
+          <Text style={styles.userName}>
+            {profile?.name || 'User'}
+          </Text>
+         <Text style={styles.userPhone}>
+            {profile?.mobile ? `+91 ${profile.mobile}` : ''}
+          </Text>
           <TouchableOpacity style={styles.editPhotoButton} activeOpacity={0.7}>
             <Ionicons name="camera-outline" size={16} color={Colors.primary} />
             <Text style={styles.editPhotoText}>Change Photo</Text>
