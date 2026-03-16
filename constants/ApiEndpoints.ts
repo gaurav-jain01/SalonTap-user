@@ -10,6 +10,9 @@ export const ApiEndpoints = {
   user: {
     profile: `${BASE_URL}/auth/profile`,
   },
+  home: {
+    home: `${BASE_URL}/home`,
+  },
   address: {
     create: `${BASE_URL}/address`,
     list: `${BASE_URL}/address`,

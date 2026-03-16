@@ -4,62 +4,59 @@ import { Gender, GenderToggle } from '@/components/gender-toggle';
 import { SectionHeader } from '@/components/section-header';
 import { ServiceCard } from '@/components/service-card';
 import { Colors, GlobalStyles, Spacing } from '@/constants/theme';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
+  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 
-type CategoryItem = {
-  id: string;
-  name: string;
-  icon: keyof typeof MaterialCommunityIcons.glyphMap;
-  color: string;
-  bgColor: string;
-};
+import { ApiEndpoints } from '@/constants/ApiEndpoints';
 
-const BANNERS: BannerItem[] = [
-  { id: '1', image: require('@/assets/images/banner1.png') },
-  { id: '2', image: require('@/assets/images/banner2.png') },
-  { id: '3', image: require('@/assets/images/banner3.png') },
-  { id: '4', image: require('@/assets/images/banner4.png') },
-];
-
-const CATEGORIES: (CategoryItem & { gender: Gender | 'unisex' })[] = [
-  { id: '1', name: 'Haircut', icon: 'content-cut', color: Colors.category.haircut.color, bgColor: Colors.category.haircut.bg, gender: 'men' },
-  { id: '2', name: 'Shaving', icon: 'face-man-shimmer', color: '#607D8B', bgColor: '#ECEFF1', gender: 'men' },
-  { id: '3', name: 'Massage', icon: 'spa', color: Colors.category.massage.color, bgColor: Colors.category.massage.bg, gender: 'unisex' },
-  { id: '4', name: 'Coloring', icon: 'spray', color: Colors.category.coloring.color, bgColor: Colors.category.coloring.bg, gender: 'unisex' },
-  { id: '5', name: 'Facial', icon: 'face-woman-shimmer', color: Colors.category.facial.color, bgColor: Colors.category.facial.bg, gender: 'women' },
-  { id: '6', name: 'Makeup', icon: 'lipstick', color: Colors.category.makeup.color, bgColor: Colors.category.makeup.bg, gender: 'women' },
-  { id: '7', name: 'Nails', icon: 'hand-wash', color: Colors.category.nails.color, bgColor: Colors.category.nails.bg, gender: 'women' },
-];
-
-const SERVICES = [
-  { id: '1', name: 'Premium Haircut', description: 'Complete hair styling and beard trim', regularPrice: '₹699', salePrice: '₹499', rating: 4.8, image: require('@/assets/images/service_haircut.png'), tags: ['Hair', 'Men'], gender: 'men' },
-  { id: '2', name: 'Deep Massage', description: 'Relaxing full body massage (45 mins)', regularPrice: '₹1499', salePrice: '₹1299', rating: 4.9, image: require('@/assets/images/service_massage.png'), tags: ['Massage', 'Spa'], gender: 'unisex' },
-  { id: '3', name: 'Gold Facial', description: 'Premium facial treatment', regularPrice: '₹1299', salePrice: '₹899', rating: 4.7, image: require('@/assets/images/service_facial.png'), tags: ['Face', 'Glow'], gender: 'women' },
-  { id: '4', name: 'Nail Art', description: 'Advanced nail extension and art', regularPrice: '₹999', salePrice: '₹699', rating: 4.6, image: require('@/assets/images/service_nails.png'), tags: ['Nails', 'Art'], gender: 'women' },
-];
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 
 export default function HomeScreen() {
-  const [selectedGender, setSelectedGender] = useState<Gender>('men');
+  const [selectedGender, setSelectedGender] = useState<Gender>('women');
   const [address, setAddress] = useState('Fetching location...');
   const [locLoading, setLocLoading] = useState(true);
+
+  const [banners, setBanners] = useState<BannerItem[]>([]);
+  const [categories, setCategories] = useState<any[]>([]);
+  const [services, setServices] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const requireLogin = async (navigateTo: string) => {
+      const token = await AsyncStorage.getItem("token");
+
+      if (token) {
+        router.push(navigateTo as any);
+      } else {
+        Alert.alert(
+          "Login Required",
+          "Please login to continue",
+          [
+            { text: "Cancel", style: "cancel" },
+            { text: "Login", onPress: () => router.push("/login") }
+          ]
+        );
+      }
+    };
+
+  /* ---------------- LOCATION ---------------- */
 
   useEffect(() => {
     (async () => {
       try {
         let { status } = await Location.requestForegroundPermissionsAsync();
+
         if (status !== 'granted') {
           setAddress('Location permission denied');
           setLocLoading(false);
@@ -75,84 +72,171 @@ export default function HomeScreen() {
         if (reverse && reverse.length > 0) {
           const addr = reverse[0];
           const city = addr.city || addr.region || '';
-          const sub = addr.name || addr.district || addr.street || '';
-          setAddress(city ? `${sub}${sub ? ', ' : ''}${city}` : 'Indore, India');
+          const sub = addr.name || addr.street || '';
+          setAddress(city ? `${sub}${sub ? ', ' : ''}${city}` : 'India');
         } else {
-          setAddress('Vijay Nagar, Indore');
+          setAddress('India');
         }
       } catch (error) {
-        setAddress('Indore, India');
+        setAddress('India');
       } finally {
         setLocLoading(false);
       }
     })();
   }, []);
 
-  const filteredCategories = CATEGORIES.filter(
-    (c) => c.gender === selectedGender || c.gender === 'unisex'
-  );
-  const filteredServices = SERVICES.filter(
-    (s) => s.gender === selectedGender || s.gender === 'unisex'
-  );
+  /* ---------------- HOME API ---------------- */
+
+  useEffect(() => {
+    const fetchHome = async () => {
+      try {
+        const response = await fetch(ApiEndpoints.home.home);
+        const json = await response.json();
+
+        if (json.success) {
+          /* BANNERS */
+          const bannerData = json.data.banners.map((b: any) => ({
+            id: b._id,
+            image: { uri: b.image },
+          }));
+
+          setBanners(bannerData);
+
+          /* CATEGORIES */
+          setCategories(json.data.categories.slice(0, 5));
+
+          /* SERVICES */
+          setServices(json.data.services.slice(0, 6));
+        }
+      } catch (error) {
+        console.log('Home API Error:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchHome();
+  }, []);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={GlobalStyles.screenContainer}>
+        <ActivityIndicator size="large" color={Colors.primary} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={GlobalStyles.screenContainer} edges={['top']}>
-      {/* ─── Header ──────────────────────────── */}
+      
+      {/* HEADER */}
+
       <View style={styles.header}>
         <View style={styles.leftSection}>
           <Text style={styles.welcomeText}>Hi, User</Text>
-          <TouchableOpacity 
-            style={styles.locationButton} 
-            activeOpacity={0.7}
+
+          <TouchableOpacity
+            style={styles.locationButton}
             onPress={() => router.push('/add-address')}
           >
             <Ionicons name="location-sharp" size={16} color={Colors.primary} />
+
             {locLoading ? (
-              <ActivityIndicator size="small" color={Colors.primary} style={{ marginLeft: 4 }} />
+              <ActivityIndicator
+                size="small"
+                color={Colors.primary}
+                style={{ marginLeft: 4 }}
+              />
             ) : (
               <Text style={styles.locationText} numberOfLines={1}>
                 {address}
               </Text>
             )}
-            <Ionicons name="chevron-down" size={14} color={Colors.textSecondary} />
+
+            <Ionicons
+              name="chevron-down"
+              size={14}
+              color={Colors.textSecondary}
+            />
           </TouchableOpacity>
         </View>
 
         <View style={styles.rightSection}>
-          <CircleIconButton name="wallet-outline" onPress={() => router.push('/wallet')} />
-          <CircleIconButton name="person-outline" onPress={() => router.push('/profile')} />
+          <CircleIconButton
+            name="wallet-outline"
+            onPress={() => requireLogin('/wallet')}
+          />
+          <CircleIconButton
+            name="person-outline"
+            onPress={() => requireLogin('/profile')}
+          />
         </View>
       </View>
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {/* Banner */}
-        <AutoScrollBanner banners={BANNERS} />
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* BANNERS */}
 
-        {/* Gender Toggle */}
+        <AutoScrollBanner banners={banners} />
+
+        {/* GENDER TOGGLE */}
+
         <GenderToggle selected={selectedGender} onChange={setSelectedGender} />
 
-        {/* Categories */}
-        <SectionHeader title="Categories" showSeeAll onPress={() => router.push('/(tabs)/categories')} />
+        {/* CATEGORIES */}
+
+        <SectionHeader
+          title="Categories"
+          showSeeAll
+          onPress={() => router.push('/(tabs)/categories')}
+        />
+
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoriesContent}
         >
-          {filteredCategories.map((cat) => (
-            <TouchableOpacity key={cat.id} style={styles.categoryItem} activeOpacity={0.7}>
-              <View style={[styles.iconCircle, { backgroundColor: cat.bgColor }]}>
-                <MaterialCommunityIcons name={cat.icon} size={24} color={cat.color} />
+          {categories.map((cat) => (
+            <TouchableOpacity key={cat._id} style={styles.categoryItem}>
+              <View style={styles.iconCircle}>
+                <MaterialCommunityIcons
+                  name="spa"
+                  size={28}
+                  color={Colors.primary}
+                />
               </View>
+
               <Text style={styles.categoryName}>{cat.name}</Text>
             </TouchableOpacity>
           ))}
         </ScrollView>
 
-        {/* Popular Services */}
-        <SectionHeader title="Popular Services" showSeeAll onPress={() => router.push('/(tabs)/categories')} />
+        {/* SERVICES */}
+
+        <SectionHeader
+          title="Popular Services"
+          showSeeAll
+          onPress={() => router.push('/(tabs)/categories')}
+        />
+
         <View style={styles.servicesGrid}>
-          {filteredServices.map((service) => (
-            <ServiceCard key={service.id} item={service} />
+          {services.map((service) => (
+            <ServiceCard
+              key={service._id}
+              item={{
+                id: service._id,
+                name: service.name,
+                description: `${service.duration} mins service`,
+                regularPrice: `₹${service.regularPrice}`,
+                salePrice: `₹${service.salePrice}`,
+                rating: 4.5,
+                image: require('@/assets/images/service_haircut.png'),
+                tags: [],
+                gender: 'unisex',
+              }}
+            />
           ))}
         </View>
       </ScrollView>
@@ -169,18 +253,21 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     backgroundColor: Colors.white,
   },
+
   leftSection: {
     flex: 1,
   },
+
   welcomeText: {
     fontSize: 14,
     color: Colors.textSecondary,
-    marginBottom: 2,
   },
+
   locationButton: {
     flexDirection: 'row',
     alignItems: 'center',
   },
+
   locationText: {
     fontSize: 16,
     fontWeight: '700',
@@ -188,14 +275,17 @@ const styles = StyleSheet.create({
     marginHorizontal: 4,
     maxWidth: '85%',
   },
+
   rightSection: {
     flexDirection: 'row',
     gap: 10,
   },
+
   categoryItem: {
     alignItems: 'center',
-    width: 70,
+    width: 80,
   },
+
   iconCircle: {
     width: 60,
     height: 60,
@@ -203,23 +293,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 8,
-    ...GlobalStyles.center,
+    backgroundColor: '#f5f5f5',
   },
+
   categoryName: {
     fontSize: 12,
     fontWeight: '600',
     color: Colors.textDark,
   },
+
   categoriesContent: {
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
-    gap: 12, // Gap between category circles
+    gap: 12,
   },
+
   scrollContent: {
     paddingBottom: 40,
     backgroundColor: Colors.backgroundSecondary,
   },
+
   servicesGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
