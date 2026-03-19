@@ -19,6 +19,8 @@ export default function RootLayout() {
           <Stack.Screen name="privacy-policy" options={{ headerShown: false }} />
           <Stack.Screen name="terms-conditions" options={{ headerShown: false }} />
           <Stack.Screen name="add-address" options={{ headerShown: false }} />
+          <Stack.Screen name="sub-categories/[id]" options={{ headerShown: false }} />
+          <Stack.Screen name="services/[id]" options={{ headerShown: false }} />
         </Stack>
         <StatusBar style="dark" />
       </ToastProvider>

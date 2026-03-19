@@ -4,7 +4,8 @@ import { Gender, GenderToggle } from '@/components/gender-toggle';
 import { SectionHeader } from '@/components/section-header';
 import { ServiceCard } from '@/components/service-card';
 import { Colors, GlobalStyles, Spacing } from '@/constants/theme';
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
@@ -14,7 +15,7 @@ import {
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -103,7 +104,7 @@ export default function HomeScreen() {
           setBanners(bannerData);
 
           /* CATEGORIES */
-          setCategories(json.data.categories.slice(0, 5));
+          setCategories(json.data.categories);
 
           /* SERVICES */
           setServices(json.data.services.slice(0, 6));
@@ -136,7 +137,7 @@ export default function HomeScreen() {
           <Text style={styles.welcomeText}>Hi, User</Text>
 
           <TouchableOpacity
-            style={styles.locationButton}
+            style={styles.locationButton}                                                                              
             onPress={() => router.push('/add-address')}
           >
             <Ionicons name="location-sharp" size={16} color={Colors.primary} />
@@ -183,62 +184,79 @@ export default function HomeScreen() {
 
         {/* GENDER TOGGLE */}
 
-        <GenderToggle selected={selectedGender} onChange={setSelectedGender} />
+        <GenderToggle selected={selectedGender} onChange={setSelectedGender} lockMen={true} />
 
-        {/* CATEGORIES */}
+        {selectedGender === 'men' ? (
+          <View style={styles.comingSoonContainer}>
+            <Ionicons name="time-outline" size={60} color={Colors.textMuted} />
+            <Text style={styles.comingSoonHeader}>Coming Soon!</Text>
+            <Text style={styles.comingSoonSub}>
+              Men's services are currently being onboarded. We'll notify you when they're live!
+            </Text>
+          </View>
+        ) : (
+          <>
+            {/* CATEGORIES */}
 
-        <SectionHeader
-          title="Categories"
-          showSeeAll
-          onPress={() => router.push('/(tabs)/categories')}
-        />
-
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContent}
-        >
-          {categories.map((cat) => (
-            <TouchableOpacity key={cat._id} style={styles.categoryItem}>
-              <View style={styles.iconCircle}>
-                <MaterialCommunityIcons
-                  name="spa"
-                  size={28}
-                  color={Colors.primary}
-                />
-              </View>
-
-              <Text style={styles.categoryName}>{cat.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* SERVICES */}
-
-        <SectionHeader
-          title="Popular Services"
-          showSeeAll
-          onPress={() => router.push('/(tabs)/categories')}
-        />
-
-        <View style={styles.servicesGrid}>
-          {services.map((service) => (
-            <ServiceCard
-              key={service._id}
-              item={{
-                id: service._id,
-                name: service.name,
-                description: `${service.duration} mins service`,
-                regularPrice: `₹${service.regularPrice}`,
-                salePrice: `₹${service.salePrice}`,
-                rating: 4.5,
-                image: require('@/assets/images/service_haircut.png'),
-                tags: [],
-                gender: 'unisex',
-              }}
+            <SectionHeader
+              title="Categories"
+              showSeeAll
+              onSeeAll={() => router.push('/(tabs)/categories')}
             />
-          ))}
-        </View>
+
+            <View style={styles.categoriesGrid}>
+              {categories.map((cat) => (
+                <TouchableOpacity
+                  key={cat._id}
+                  style={styles.categoryItem}
+                  onPress={() =>
+                    router.push({
+                      pathname: '/sub-categories/[id]',
+                      params: { id: cat._id, name: cat.name },
+                    })
+                  }
+                >
+                  <View style={styles.iconCircle}>
+                    <Image
+                      source={{ uri: cat.image }}
+                      style={styles.categoryImage}
+                      contentFit="contain"
+                    />
+                  </View>
+
+                  <Text style={styles.categoryName}>{cat.name}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* SERVICES */}
+
+            <SectionHeader
+              title="Popular Services"
+              showSeeAll
+              onSeeAll={() => router.push('/(tabs)/categories')}
+            />
+
+            <View style={styles.servicesGrid}>
+              {services.map((service) => (
+                <ServiceCard
+                  key={service._id}
+                  item={{
+                    id: service._id,
+                    name: service.name,
+                    description: service.description || 'Professional grooming service',
+                    regularPrice: `₹${service.regularPrice}`,
+                    salePrice: `₹${service.salePrice}`,
+                    duration: `${service.duration} mins`,
+                    image: require('@/assets/images/service_haircut.png'),
+                    tags: [],
+                  }}
+                  onAddToCart={() => console.log('Added to cart:', service._id)}
+                />
+              ))}
+            </View>
+          </>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -281,11 +299,6 @@ const styles = StyleSheet.create({
     gap: 10,
   },
 
-  categoryItem: {
-    alignItems: 'center',
-    width: 80,
-  },
-
   iconCircle: {
     width: 60,
     height: 60,
@@ -294,6 +307,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginBottom: 8,
     backgroundColor: '#f5f5f5',
+  },
+
+  categoryImage: {
+    width: 64,
+    height: 64,
+    borderRadius: 30,
   },
 
   categoryName: {
@@ -309,6 +328,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
+  categoriesGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+
+  categoryItem: {
+    width: '22%', // ✅ 4 items in row
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+
   scrollContent: {
     paddingBottom: 40,
     backgroundColor: Colors.backgroundSecondary,
@@ -321,5 +355,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.xl,
     paddingTop: Spacing.md,
     paddingBottom: Spacing.xl,
+  },
+
+  // Coming Soon
+  comingSoonContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 60,
+    paddingHorizontal: 40,
+  },
+  comingSoonHeader: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: Colors.dark,
+    marginTop: 15,
+    marginBottom: 8,
+  },
+  comingSoonSub: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });

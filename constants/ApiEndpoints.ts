@@ -12,6 +12,8 @@ export const ApiEndpoints = {
   },
   home: {
     home: `${BASE_URL}/home`,
+    subCategories: (id: string) => `${BASE_URL}/home/sub-categories/${id}`,
+    services: (id: string) => `${BASE_URL}/home/services/${id}`,
   },
   address: {
     create: `${BASE_URL}/address`,
