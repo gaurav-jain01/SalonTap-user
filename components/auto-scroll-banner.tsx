@@ -19,6 +19,8 @@ export function AutoScrollBanner({ banners, autoPlayInterval = 3000 }: AutoScrol
   const [currentIndex, setCurrentIndex] = useState(0);
 
   useEffect(() => {
+    if (banners.length <= 1) return;
+
     const interval = setInterval(() => {
       let nextIndex = currentIndex + 1;
       if (nextIndex >= banners.length) {
@@ -37,6 +39,10 @@ export function AutoScrollBanner({ banners, autoPlayInterval = 3000 }: AutoScrol
     </View>
   );
 
+  if (!banners || banners.length === 0) {
+    return null;
+  }
+
   return (
     <View style={styles.wrapper}>
       <FlatList
@@ -53,17 +59,19 @@ export function AutoScrollBanner({ banners, autoPlayInterval = 3000 }: AutoScrol
         }}
       />
       {/* Pagination Dots */}
-      <View style={styles.paginationContainer}>
-        {banners.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.paginationDot,
-              currentIndex === index && styles.paginationDotActive,
-            ]}
-          />
-        ))}
-      </View>
+      {banners.length > 1 && (
+        <View style={styles.paginationContainer}>
+          {banners.map((_, index) => (
+            <View
+              key={index}
+              style={[
+                styles.paginationDot,
+                currentIndex === index && styles.paginationDotActive,
+              ]}
+            />
+          ))}
+        </View>
+      )}
     </View>
   );
 }
