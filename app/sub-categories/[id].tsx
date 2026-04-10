@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenHeader } from '@/components/screen-header';
 import { ApiEndpoints } from '@/constants/ApiEndpoints';
 import { BorderRadius, Colors, Shadows, Spacing } from '@/constants/theme';
+import { LoadingWrapper } from '@/components/loading/loading-wrapper';
 
 interface SubCategory {
   _id: string;
@@ -104,27 +105,25 @@ export default function SubCategoriesScreen() {
         onBackPress={() => router.back()}
       />
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      ) : subCategories.length === 0 ? (
-        <View style={styles.centered}>
-          <Ionicons name="search-outline" size={64} color={Colors.textMuted} />
-          <Text style={styles.noDataText}>No subcategories found</Text>
-        </View>
-      ) : (
-        <FlatList
-          key="subcategory-grid"
-          data={subCategories}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <LoadingWrapper loading={loading} type="skeleton" skeletonType="grid" count={6}>
+        {subCategories.length === 0 ? (
+          <View style={styles.centered}>
+            <Ionicons name="search-outline" size={64} color={Colors.textMuted} />
+            <Text style={styles.noDataText}>No subcategories found</Text>
+          </View>
+        ) : (
+          <FlatList
+            key="subcategory-grid"
+            data={subCategories}
+            keyExtractor={(item) => item._id}
+            renderItem={renderItem}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </LoadingWrapper>
     </SafeAreaView>
   );
 }

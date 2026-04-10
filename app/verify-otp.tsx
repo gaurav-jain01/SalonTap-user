@@ -8,14 +8,32 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, TextInput, TouchableOpacity, View } from 'react-native';
+import { AppLoader } from '@/components/loading/app-loader';
 
 export default function VerifyOTPScreen() {
   const { phone } = useLocalSearchParams();
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [isCheckingAuth, setIsCheckingAuth] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [timeLeft, setTimeLeft] = useState(30);
   const { showToast } = useToast();
   const inputs = useRef<Array<TextInput | null>>([]);
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const token = await AsyncStorage.getItem('token');
+        if (token) {
+          router.replace('/(tabs)');
+        } else {
+          setIsCheckingAuth(false);
+        }
+      } catch (error) {
+        setIsCheckingAuth(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   useEffect(() => {
     if (timeLeft <= 0) return;
@@ -88,6 +106,14 @@ export default function VerifyOTPScreen() {
     }
   };
 
+  if (isCheckingAuth) {
+    return (
+      <ThemedView style={[GlobalStyles.screenContainer, { justifyContent: 'center', alignItems: 'center' }]}>
+        <AppLoader size="large" />
+      </ThemedView>
+    );
+  }
+
   return (
     <ThemedView style={GlobalStyles.screenContainer}>
       <View style={styles.content}>
@@ -118,7 +144,7 @@ export default function VerifyOTPScreen() {
           disabled={isLoading}
         >
           {isLoading ? (
-            <ActivityIndicator color={Colors.white} />
+            <AppLoader size="small" color={Colors.white} />
           ) : (
             <ThemedText style={GlobalStyles.primaryButtonText}>Verify</ThemedText>
           )}

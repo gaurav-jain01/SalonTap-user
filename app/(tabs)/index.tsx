@@ -10,19 +10,21 @@ import * as Location from 'expo-location';
 import { router } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
+import { AppLoader } from '@/components/loading/app-loader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiEndpoints } from '@/constants/ApiEndpoints';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
+import { LoadingWrapper } from '@/components/loading/loading-wrapper';
 
 export default function HomeScreen() {
   const [selectedGender, setSelectedGender] = useState<Gender>('women');
@@ -119,41 +121,25 @@ export default function HomeScreen() {
     fetchHome();
   }, []);
 
-  if (loading) {
-    return (
-      <SafeAreaView style={GlobalStyles.screenContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={GlobalStyles.screenContainer} edges={['top']}>
       
       {/* HEADER */}
-
       <View style={styles.header}>
         <View style={styles.leftSection}>
           <Text style={styles.welcomeText}>Hi, User</Text>
-
           <TouchableOpacity
             style={styles.locationButton}                                                                              
-            onPress={() => router.push('/add-address')}
+            onPress={() => router.push('/addresses')}
           >
             <Ionicons name="location-sharp" size={16} color={Colors.primary} />
-
             {locLoading ? (
-              <ActivityIndicator
-                size="small"
-                color={Colors.primary}
-                style={{ marginLeft: 4 }}
-              />
+               <AppLoader size="small" />
             ) : (
               <Text style={styles.locationText} numberOfLines={1}>
                 {address}
               </Text>
             )}
-
             <Ionicons
               name="chevron-down"
               size={14}
@@ -174,17 +160,28 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* BANNERS */}
+      <LoadingWrapper loading={loading} type="skeleton" skeletonType="card" count={4}>
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+        >
+          {/* SEARCH BAR */}
+          <View style={styles.searchContainer}>
+            <TouchableOpacity 
+              style={styles.searchBar} 
+              activeOpacity={0.9}
+              onPress={() => router.push('/search')}
+            >
+              <Ionicons name="search-outline" size={20} color={Colors.textSecondary} />
+              <Text style={styles.searchPlaceholder}>Search services</Text>
+            </TouchableOpacity>
+          </View>
 
-        <AutoScrollBanner banners={banners} />
+          {/* BANNERS */}
+          <AutoScrollBanner banners={banners} />
 
-        {/* GENDER TOGGLE */}
-
-        <GenderToggle selected={selectedGender} onChange={setSelectedGender} lockMen={true} />
+          {/* GENDER TOGGLE */}
+          <GenderToggle selected={selectedGender} onChange={setSelectedGender} lockMen={true} />
 
         {selectedGender === 'men' ? (
           <View style={styles.comingSoonContainer}>
@@ -257,7 +254,8 @@ export default function HomeScreen() {
             </View>
           </>
         )}
-      </ScrollView>
+        </ScrollView>
+      </LoadingWrapper>
     </SafeAreaView>
   );
 }
@@ -377,5 +375,28 @@ const styles = StyleSheet.create({
     color: Colors.textMuted,
     textAlign: 'center',
     lineHeight: 20,
+  },
+
+  // Search
+  searchContainer: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.md,
+    paddingBottom: Spacing.sm,
+    backgroundColor: Colors.white,
+  },
+  searchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.backgroundSecondary,
+    paddingHorizontal: 16,
+    height: 50,
+    borderRadius: 16,
+    gap: 12,
+  },
+  searchPlaceholder: {
+    flex: 1,
+    fontSize: 15,
+    color: Colors.textSecondary,
+    fontWeight: '500',
   },
 });

@@ -14,6 +14,7 @@ import { ApiEndpoints } from '@/constants/ApiEndpoints';
 import { Colors, Spacing } from '@/constants/theme';
 import { ScreenHeader } from '@/components/screen-header';
 import { ServiceCard } from '@/components/service-card';
+import { LoadingWrapper } from '@/components/loading/loading-wrapper';
 
 interface Service {
   _id: string;
@@ -31,45 +32,68 @@ export default function ServicesScreen() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchServices = async () => {
-      try {
-        const url = ApiEndpoints.home.services(id);
-        const response = await fetch(url);
-        const json = await response.json();
-
-        if (json.success) {
-          setServices(json.data);
-        }
-      } catch (error) {
-        console.error('Services API Error:', error);
-      } finally {
-        setLoading(false);
+    // Using dummy data as requested
+    const dummyServices: Service[] = [
+      {
+        _id: "69ba642b6f2099161f8c91aa",
+        name: "Party Hair Style",
+        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
+        description: "Elegant hair styles for parties.",
+        duration: 45,
+        regularPrice: 800,
+        salePrice: 599,
+      },
+      {
+        _id: "69ba642b6f2099161f8c91ab",
+        name: "Bridal Makeup",
+        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
+        description: "Full bridal makeup and styling.",
+        duration: 120,
+        regularPrice: 5000,
+        salePrice: 3999,
+      },
+      {
+        _id: "69ba642b6f2099161f8c91ac",
+        name: "Hair Spa",
+        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
+        description: "Nourishing treatment for hair.",
+        duration: 60,
+        regularPrice: 1200,
+        salePrice: 899,
+      },
+      {
+        _id: "69ba642b6f2099161f8c91ad",
+        name: "Face Glow Facial",
+        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
+        description: "Deep cleansing and facial massage.",
+        duration: 60,
+        regularPrice: 1500,
+        salePrice: 999,
       }
-    };
+    ];
 
-    if (id) {
-      fetchServices();
-    }
+    setServices(dummyServices);
+    setLoading(false);
   }, [id]);
 
-  const renderItem = ({ item }: { item: Service }) => (
-    <ServiceCard
-      item={{
-        id: item._id,
-        name: item.name,
-        description: item.description || 'Professional grooming service',
-        regularPrice: `₹${item.regularPrice}`,
-        salePrice: `₹${item.salePrice}`,
-        duration: `${item.duration} mins`,
-        image: require('@/assets/images/service_haircut.png'),
-        tags: [],
-      }}
-      onAddToCart={() => {
-        // Handle cart logic
-        console.log('Added to cart:', item._id);
-      }}
-    />
-  );
+  const renderItem = ({ item }: { item: Service }) => {
+    const discount = item.regularPrice - item.salePrice;
+    return (
+      <ServiceCard
+        item={{
+          id: item._id,
+          name: item.name,
+          description: item.description,
+          regularPrice: `₹${item.regularPrice}`,
+          salePrice: `₹${item.salePrice}`,
+          duration: `${item.duration} mins`,
+          image: item.image,
+          tags: [],
+          discount: discount > 0 ? `₹${discount} OFF` : undefined,
+        }}
+      />
+    );
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -79,27 +103,25 @@ export default function ServicesScreen() {
         onBackPress={() => router.back()}
       />
 
-      {loading ? (
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      ) : services.length === 0 ? (
-        <View style={styles.centered}>
-          <Ionicons name="cut-outline" size={64} color={Colors.textMuted} />
-          <Text style={styles.noDataText}>No services found in this category</Text>
-        </View>
-      ) : (
-        <FlatList
-          key="services-grid"
-          data={services}
-          keyExtractor={(item) => item._id}
-          renderItem={renderItem}
-          numColumns={2}
-          columnWrapperStyle={styles.columnWrapper}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      <LoadingWrapper loading={loading} type="skeleton" skeletonType="grid" count={6}>
+        {services.length === 0 ? (
+          <View style={styles.centered}>
+            <Ionicons name="cut-outline" size={64} color={Colors.textMuted} />
+            <Text style={styles.noDataText}>No services found in this category</Text>
+          </View>
+        ) : (
+          <FlatList
+            key="services-grid"
+            data={services}
+            keyExtractor={(item) => item._id}
+            renderItem={renderItem}
+            numColumns={2}
+            columnWrapperStyle={styles.columnWrapper}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </LoadingWrapper>
     </SafeAreaView>
   );
 }

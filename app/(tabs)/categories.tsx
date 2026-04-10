@@ -17,6 +17,7 @@ import { ApiEndpoints } from '@/constants/ApiEndpoints';
 import { Image } from 'expo-image';
 
 import { router } from 'expo-router';
+import { LoadingWrapper } from '@/components/loading/loading-wrapper';
 
 export default function CategoriesScreen() {
   const [selectedGender, setSelectedGender] = useState<Gender>('women');
@@ -48,23 +49,13 @@ export default function CategoriesScreen() {
     return matchesSearch;
   });
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <ScreenHeader title="Categories" subtitle="Please wait..." />
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
       <ScreenHeader title="Categories" subtitle="Browse all services" />
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <LoadingWrapper loading={loading} type="skeleton" skeletonType="grid" count={9}>
+        <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         {/* Gender Toggle */}
         <GenderToggle selected={selectedGender} onChange={setSelectedGender} />
 
@@ -129,7 +120,8 @@ export default function CategoriesScreen() {
             </View>
           </>
         )}
-      </ScrollView>
+        </ScrollView>
+      </LoadingWrapper>
     </SafeAreaView>
   );
 }

@@ -8,6 +8,7 @@ export const Colors = {
   primary: '#0a7ea4',
   primaryLight: '#38a8c9',
   primaryDark: '#066580',
+  accent: '#FF6B6B',
 
   // Neutral palette
   white: '#FFFFFF',
