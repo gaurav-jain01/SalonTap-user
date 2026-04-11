@@ -14,6 +14,7 @@ export const ApiEndpoints = {
     home: `${BASE_URL}/home`,
     subCategories: (id: string) => `${BASE_URL}/home/sub-categories/${id}`,
     services: (id: string) => `${BASE_URL}/home/services/${id}`,
+    servicesBySubCategory: (id: string, page: number = 1) => `${BASE_URL}/services?subCategoryId=${id}&page=${page}&limit=10`,
   },
   address: {
     create: `${BASE_URL}/address`,

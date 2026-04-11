@@ -11,8 +11,10 @@ export interface CartItem {
 
 interface CartContextType {
   cartItems: CartItem[];
+  suggestions: CartItem[];
   addToCart: (item: Omit<CartItem, 'quantity'>) => void;
   removeFromCart: (id: string) => void;
+  updateSuggestions: (items: any[]) => void;
   clearCart: () => void;
   totalItems: number;
   totalAmount: number;
@@ -22,6 +24,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export const CartProvider = ({ children }: { children: ReactNode }) => {
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
+  const [suggestions, setSuggestions] = useState<CartItem[]>([]);
 
   const addToCart = (item: Omit<CartItem, 'quantity'>) => {
     setCartItems((prevItems) => {
@@ -50,6 +53,18 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     );
   };
 
+  const updateSuggestions = (items: any[]) => {
+    const formatted = items.map(item => ({
+      id: item._id,
+      name: item.name,
+      price: item.salePrice,
+      regularPrice: item.regularPrice,
+      image: item.images && item.images.length > 0 ? item.images[0] : null,
+      quantity: 0
+    }));
+    setSuggestions(formatted);
+  };
+
   const clearCart = () => setCartItems([]);
 
   const totalItems = cartItems.reduce((sum, item) => sum + item.quantity, 0);
@@ -59,8 +74,10 @@ export const CartProvider = ({ children }: { children: ReactNode }) => {
     <CartContext.Provider
       value={{
         cartItems,
+        suggestions,
         addToCart,
         removeFromCart,
+        updateSuggestions,
         clearCart,
         totalItems,
         totalAmount,

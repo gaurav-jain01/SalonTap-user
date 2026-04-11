@@ -21,6 +21,7 @@ import { AppLoader } from '@/components/loading/app-loader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiEndpoints } from '@/constants/ApiEndpoints';
+import { apiClient } from '@/services/apiClient';
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
@@ -91,10 +92,27 @@ export default function HomeScreen() {
   /* ---------------- HOME API ---------------- */
 
   useEffect(() => {
+    const checkConnectivity = async () => {
+      try {
+        await fetch('https://www.google.com', { mode: 'no-cors' });
+        console.log('Connectivity Check: Internet is REACHABLE');
+      } catch (e) {
+        console.log('Connectivity Check: Internet is UNREACHABLE', e);
+      }
+    };
+    checkConnectivity();
+
     const fetchHome = async () => {
       try {
-        const response = await fetch(ApiEndpoints.home.home);
-        const json = await response.json();
+        console.log('Fetching Home from:', ApiEndpoints.home.home);
+        const response = await apiClient.get(ApiEndpoints.home.home);
+        const json = response.data;
+        console.log('Home API Response Structure:', {
+          success: json.success,
+          hasData: !!json.data,
+          servicesCount: json.data?.services?.length,
+          categoriesCount: json.data?.categories?.length
+        });
 
         if (json.success) {
           /* BANNERS */
@@ -111,8 +129,13 @@ export default function HomeScreen() {
           /* SERVICES */
           setServices(json.data.services.slice(0, 6));
         }
-      } catch (error) {
-        console.log('Home API Error:', error);
+      } catch (error: any) {
+        console.log('Home API Error Context:', {
+          message: error.message,
+          code: error.code,
+          url: error.config?.url,
+          status: error.response?.status,
+        });
       } finally {
         setLoading(false);
       }
@@ -235,22 +258,34 @@ export default function HomeScreen() {
             />
 
             <View style={styles.servicesGrid}>
-              {services.map((service) => (
-                <ServiceCard
-                  key={service._id}
-                  item={{
-                    id: service._id,
-                    name: service.name,
-                    description: service.description || 'Professional grooming service',
-                    regularPrice: `₹${service.regularPrice}`,
-                    salePrice: `₹${service.salePrice}`,
-                    duration: `${service.duration} mins`,
-                    image: require('@/assets/images/service_haircut.png'),
-                    tags: [],
-                  }}
-                  onAddToCart={() => console.log('Added to cart:', service._id)}
-                />
-              ))}
+              {services.map((service) => {
+                const reg = typeof service.regularPrice === 'string' 
+                  ? parseFloat(service.regularPrice.replace(/[^0-9.]/g, '')) 
+                  : service.regularPrice;
+                const sale = typeof service.salePrice === 'string' 
+                  ? parseFloat(service.salePrice.replace(/[^0-9.]/g, '')) 
+                  : service.salePrice;
+                
+                const discountAmount = reg - sale;
+                
+                return (
+                  <ServiceCard
+                    key={service._id}
+                    item={{
+                      id: service._id,
+                      name: service.name,
+                      description: service.description || 'Professional grooming service',
+                      regularPrice: `₹${reg}`,
+                      salePrice: `₹${sale}`,
+                      duration: `${service.duration} mins`,
+                      image: service.images && service.images.length > 0 ? service.images[0] : 'https://via.placeholder.com/150',
+                      tags: [],
+                      discount: discountAmount > 0 ? `₹${discountAmount} OFF` : undefined,
+                    }}
+                    onAddToCart={() => console.log('Added to cart:', service._id)}
+                  />
+                );
+              })}
             </View>
           </>
         )}

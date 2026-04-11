@@ -29,28 +29,41 @@ export default function SubCategoriesScreen() {
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
   const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const fetchSubCategories = async (page: number) => {
+    try {
+      setLoading(true);
+      // Assuming subcategories endpoint also supports page/limit
+      const url = `${ApiEndpoints.home.subCategories(id)}?page=${page}&limit=10`;
+      const response = await fetch(url);
+      const json = await response.json();
+
+      if (json.success) {
+        setSubCategories(json.data);
+        setTotalPages(json.totalPages || 1);
+        setTotalCount(json.total || json.data.length);
+      }
+    } catch (error) {
+      console.error('Subcategories API Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchSubCategories = async () => {
-      try {
-        const url = ApiEndpoints.home.subCategories(id);
-        const response = await fetch(url);
-        const json = await response.json();
-
-        if (json.success) {
-          setSubCategories(json.data);
-        }
-      } catch (error) {
-        console.error('Subcategories API Error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     if (id) {
-      fetchSubCategories();
+      fetchSubCategories(currentPage);
     }
-  }, [id]);
+  }, [id, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const renderItem = ({ item }: { item: SubCategory }) => (
     <TouchableOpacity
@@ -97,6 +110,50 @@ export default function SubCategoriesScreen() {
     </TouchableOpacity>
   );
 
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <View style={styles.paginationContainer}>
+        <Text style={styles.totalInfo}>{totalCount} sub-categories in total</Text>
+        <View style={styles.pageButtons}>
+          <TouchableOpacity
+            style={[styles.pageButton, currentPage === 1 && styles.disabledButton]}
+            onPress={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? Colors.textMuted : Colors.primary} />
+          </TouchableOpacity>
+
+          {pages.map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={[styles.pageButton, currentPage === p && styles.activePageButton]}
+              onPress={() => handlePageChange(p)}
+            >
+              <Text style={[styles.pageButtonText, currentPage === p && styles.activePageButtonText]}>
+                {p}
+              </Text>
+            </TouchableOpacity>
+          ))}
+
+          <TouchableOpacity
+            style={[styles.pageButton, currentPage === totalPages && styles.disabledButton]}
+            onPress={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages ? Colors.textMuted : Colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  };
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <ScreenHeader
@@ -112,16 +169,19 @@ export default function SubCategoriesScreen() {
             <Text style={styles.noDataText}>No subcategories found</Text>
           </View>
         ) : (
-          <FlatList
-            key="subcategory-grid"
-            data={subCategories}
-            keyExtractor={(item) => item._id}
-            renderItem={renderItem}
-            numColumns={2}
-            columnWrapperStyle={styles.columnWrapper}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
+          <View style={{ flex: 1 }}>
+            <FlatList
+              key="subcategory-grid"
+              data={subCategories}
+              keyExtractor={(item) => item._id}
+              renderItem={renderItem}
+              numColumns={2}
+              columnWrapperStyle={styles.columnWrapper}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListFooterComponent={renderPagination}
+            />
+          </View>
         )}
       </LoadingWrapper>
     </SafeAreaView>
@@ -196,5 +256,49 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: Colors.textMuted,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  totalInfo: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  pageButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pageButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMedium,
+    ...Shadows.sm,
+  },
+  pageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark,
+  },
+  activePageButton: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  activePageButtonText: {
+    color: Colors.white,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });

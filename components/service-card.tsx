@@ -66,6 +66,11 @@ export function ServiceCard({ item, onPress, onAddToCart, onRemoveFromCart }: Se
             resizeMode="cover" 
           />
           
+          {/* Duration Badge */}
+          <View style={styles.durationBadge}>
+            <Text style={styles.durationText}>{item.duration}</Text>
+          </View>
+
           {/* Action Button - Absolute Positioned */}
           <View style={styles.actionButtonContainer}>
             {!isAdded ? (
@@ -92,23 +97,21 @@ export function ServiceCard({ item, onPress, onAddToCart, onRemoveFromCart }: Se
 
         {/* Content Section */}
         <View style={styles.info}>
-          {/* Discount Label - Minimal style from reference */}
-          {item.discount && (
-            <Text style={styles.discountText}>{item.discount}</Text>
-          )}
+          {/* Prices Row */}
+          <View style={styles.priceContainer}>
+             <Text style={styles.salePriceText}>{item.salePrice}</Text>
+             <Text style={styles.regularPriceText}>{item.regularPrice}</Text>
+             {item.discount && (
+               <Text style={styles.discountBadgeText}>{item.discount}</Text>
+             )}
+          </View>
 
-          {/* Dashed Separator */}
+          {/* Minimal Dashed Separator */}
           <View style={styles.dashedLine} />
 
           {/* Name & Details */}
           <Text style={styles.name} numberOfLines={2}>{item.name}</Text>
-          <Text style={styles.description} numberOfLines={1}>{item.duration} • {item.description}</Text>
-
-          {/* Price Row */}
-          <View style={styles.priceContainer}>
-             <Text style={styles.salePriceText}>{item.salePrice}</Text>
-             <Text style={styles.regularPriceText}>{item.regularPrice}</Text>
-          </View>
+          <Text style={styles.description} numberOfLines={1}>{item.description}</Text>
 
           {/* Rating */}
           <View style={styles.ratingRow}>
@@ -125,8 +128,8 @@ const styles = StyleSheet.create({
   card: {
     width: cardWidth,
     backgroundColor: Colors.white,
-    borderRadius: 16,
-    marginBottom: Spacing.lg,
+    borderRadius: 20, // More rounded as requested
+    marginBottom: Spacing.md,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: Colors.border,
@@ -142,6 +145,21 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  durationBadge: {
+    position: 'absolute',
+    top: 10,
+    left: 10,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+    ...Shadows.sm,
+  },
+  durationText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: Colors.dark,
+  },
   actionButtonContainer: {
     position: 'absolute',
     bottom: 10,
@@ -152,21 +170,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
     paddingVertical: 6,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.primary,
+    borderWidth: 1.5,
+    borderColor: '#007084', // Specific teal color from reference
     minWidth: 70,
     alignItems: 'center',
     ...Shadows.sm,
   },
   addText: {
-    color: Colors.primary,
+    color: '#007084',
     fontWeight: '800',
     fontSize: 13,
   },
   quantityBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
+    backgroundColor: '#007084',
     borderRadius: 8,
     height: 36,
     minWidth: 80,
@@ -186,49 +204,49 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   info: {
-    padding: 10,
-  },
-  discountText: {
-    color: Colors.success,
-    fontWeight: '700',
-    fontSize: 13,
-    marginBottom: 4,
-  },
-  dashedLine: {
-    height: 1,
-    borderWidth: 0.5,
-    borderColor: Colors.borderMedium,
-    borderStyle: 'dashed',
-    marginVertical: 8,
-  },
-  name: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.dark,
-    lineHeight: 18,
-    marginBottom: 4,
-  },
-  description: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    marginBottom: 6,
+    padding: 12,
   },
   priceContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    marginBottom: 6,
+    marginBottom: 4, // Reduced space
   },
   salePriceText: {
     color: Colors.dark,
     fontWeight: '800',
-    fontSize: 15,
+    fontSize: 16,
   },
   regularPriceText: {
     color: Colors.textLight,
     textDecorationLine: 'line-through',
     fontSize: 13,
     fontWeight: '500',
+  },
+  discountBadgeText: {
+    color: Colors.success,
+    fontWeight: '700',
+    fontSize: 12,
+    marginLeft: 'auto', // Pushes to the right
+  },
+  dashedLine: {
+    height: 1,
+    borderWidth: 0.5,
+    borderColor: Colors.borderLight,
+    borderStyle: 'dotted', // Dotted looks cleaner for minimal style
+    marginVertical: 6, // Reduced space
+  },
+  name: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: Colors.dark,
+    lineHeight: 18,
+    marginBottom: 2,
+  },
+  description: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    marginBottom: 6,
   },
   ratingRow: {
     flexDirection: 'row',

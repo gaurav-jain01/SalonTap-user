@@ -4,94 +4,145 @@ import {
   FlatList,
   StyleSheet,
   Text,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
+import { useCart } from '@/contexts/cart-context';
 
 import { ApiEndpoints } from '@/constants/ApiEndpoints';
-import { Colors, Spacing } from '@/constants/theme';
+import { Colors, Spacing, BorderRadius, Shadows } from '@/constants/theme';
 import { ScreenHeader } from '@/components/screen-header';
 import { ServiceCard } from '@/components/service-card';
 import { LoadingWrapper } from '@/components/loading/loading-wrapper';
+import { apiClient } from '@/services/apiClient';
 
 interface Service {
   _id: string;
   name: string;
   description: string;
   duration: number;
-  regularPrice: number;
-  salePrice: number;
-  image: string;
+  regularPrice: number | string;
+  salePrice: number | string;
+  images: string[];
 }
 
 export default function ServicesScreen() {
   const { id, name } = useLocalSearchParams<{ id: string; name: string }>();
   const [services, setServices] = useState<Service[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+
+  const { updateSuggestions } = useCart();
+
+  const fetchServices = async (page: number) => {
+    try {
+      setLoading(true);
+      const url = ApiEndpoints.home.servicesBySubCategory(id || '', page);
+      const response = await apiClient.get(url);
+      const json = response.data;
+
+      if (json.success) {
+        setServices(json.data);
+        setTotalPages(json.totalPages || 1);
+        setTotalCount(json.total || json.data.length);
+        
+        // Update globally suggested services for the cart
+        if (json.suggestedService) {
+           updateSuggestions(json.suggestedService);
+        }
+      }
+    } catch (error) {
+      console.error('Services API Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Using dummy data as requested
-    const dummyServices: Service[] = [
-      {
-        _id: "69ba642b6f2099161f8c91aa",
-        name: "Party Hair Style",
-        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
-        description: "Elegant hair styles for parties.",
-        duration: 45,
-        regularPrice: 800,
-        salePrice: 599,
-      },
-      {
-        _id: "69ba642b6f2099161f8c91ab",
-        name: "Bridal Makeup",
-        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
-        description: "Full bridal makeup and styling.",
-        duration: 120,
-        regularPrice: 5000,
-        salePrice: 3999,
-      },
-      {
-        _id: "69ba642b6f2099161f8c91ac",
-        name: "Hair Spa",
-        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
-        description: "Nourishing treatment for hair.",
-        duration: 60,
-        regularPrice: 1200,
-        salePrice: 899,
-      },
-      {
-        _id: "69ba642b6f2099161f8c91ad",
-        name: "Face Glow Facial",
-        image: "https://res.cloudinary.com/dwa5wruvc/image/upload/v1773822946/salontap/profile/rzkcrxgdvgqa883vdiyt.jpg",
-        description: "Deep cleansing and facial massage.",
-        duration: 60,
-        regularPrice: 1500,
-        salePrice: 999,
-      }
-    ];
+    if (id) {
+      fetchServices(currentPage);
+    }
+  }, [id, currentPage]);
 
-    setServices(dummyServices);
-    setLoading(false);
-  }, [id]);
+  const handlePageChange = (page: number) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
+  };
 
   const renderItem = ({ item }: { item: Service }) => {
-    const discount = item.regularPrice - item.salePrice;
+    const reg = typeof item.regularPrice === 'string' 
+      ? parseFloat(item.regularPrice.replace(/[^0-9.]/g, '')) 
+      : item.regularPrice;
+    const sale = typeof item.salePrice === 'string' 
+      ? parseFloat(item.salePrice.replace(/[^0-9.]/g, '')) 
+      : item.salePrice;
+    
+    const discountAmount = reg - sale;
+    
     return (
       <ServiceCard
         item={{
           id: item._id,
           name: item.name,
           description: item.description,
-          regularPrice: `₹${item.regularPrice}`,
-          salePrice: `₹${item.salePrice}`,
+          regularPrice: `₹${reg}`,
+          salePrice: `₹${sale}`,
           duration: `${item.duration} mins`,
-          image: item.image,
+          image: item.images && item.images.length > 0 ? item.images[0] : 'https://via.placeholder.com/150',
           tags: [],
-          discount: discount > 0 ? `₹${discount} OFF` : undefined,
+          discount: discountAmount > 0 ? `₹${discountAmount} OFF` : undefined,
         }}
       />
+    );
+  };
+
+  const renderPagination = () => {
+    if (totalPages <= 1) return null;
+
+    const pages = [];
+    for (let i = 1; i <= totalPages; i++) {
+      pages.push(i);
+    }
+
+    return (
+      <View style={styles.paginationContainer}>
+        <Text style={styles.totalInfo}>{totalCount} services in total</Text>
+        <View style={styles.pageButtons}>
+          <TouchableOpacity
+            style={[styles.pageButton, currentPage === 1 && styles.disabledButton]}
+            onPress={() => handlePageChange(currentPage - 1)}
+            disabled={currentPage === 1}
+          >
+            <Ionicons name="chevron-back" size={20} color={currentPage === 1 ? Colors.textMuted : Colors.primary} />
+          </TouchableOpacity>
+
+          {pages.map((p) => (
+            <TouchableOpacity
+              key={p}
+              style={[styles.pageButton, currentPage === p && styles.activePageButton]}
+              onPress={() => handlePageChange(p)}
+            >
+              <Text style={[styles.pageButtonText, currentPage === p && styles.activePageButtonText]}>
+                {p}
+              </Text>
+            </TouchableOpacity>
+          ))}
+
+          <TouchableOpacity
+            style={[styles.pageButton, currentPage === totalPages && styles.disabledButton]}
+            onPress={() => handlePageChange(currentPage + 1)}
+            disabled={currentPage === totalPages}
+          >
+            <Ionicons name="chevron-forward" size={20} color={currentPage === totalPages ? Colors.textMuted : Colors.primary} />
+          </TouchableOpacity>
+        </View>
+      </View>
     );
   };
 
@@ -110,16 +161,19 @@ export default function ServicesScreen() {
             <Text style={styles.noDataText}>No services found in this category</Text>
           </View>
         ) : (
-          <FlatList
-            key="services-grid"
-            data={services}
-            keyExtractor={(item) => item._id}
-            renderItem={renderItem}
-            numColumns={2}
-            columnWrapperStyle={styles.columnWrapper}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
-          />
+          <View style={{ flex: 1 }}>
+            <FlatList
+              key="services-grid"
+              data={services}
+              keyExtractor={(item) => item._id}
+              renderItem={renderItem}
+              numColumns={2}
+              columnWrapperStyle={styles.columnWrapper}
+              contentContainerStyle={styles.listContent}
+              showsVerticalScrollIndicator={false}
+              ListFooterComponent={renderPagination}
+            />
+          </View>
         )}
       </LoadingWrapper>
     </SafeAreaView>
@@ -148,5 +202,49 @@ const styles = StyleSheet.create({
     marginTop: 10,
     fontSize: 16,
     color: Colors.textMuted,
+  },
+  paginationContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 20,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: Colors.borderLight,
+  },
+  totalInfo: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+  },
+  pageButtons: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pageButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 8,
+    backgroundColor: Colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: Colors.borderMedium,
+    ...Shadows.sm,
+  },
+  pageButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.dark,
+  },
+  activePageButton: {
+    backgroundColor: Colors.primary,
+    borderColor: Colors.primary,
+  },
+  activePageButtonText: {
+    color: Colors.white,
+  },
+  disabledButton: {
+    opacity: 0.5,
   },
 });

@@ -1,11 +1,5 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-  withDelay,
-} from 'react-native-reanimated';
 import { Colors } from '@/constants/theme';
 import { AppLoader } from './app-loader';
 import { CardSkeleton, ListSkeleton, GridSkeleton, SkeletonBox } from './app-skeleton';
@@ -27,20 +21,6 @@ export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   count = 3,
   skeletonProps,
 }) => {
-  const contentOpacity = useSharedValue(0);
-
-  useEffect(() => {
-    if (!loading) {
-      contentOpacity.value = withTiming(1, { duration: 500 });
-    } else {
-      contentOpacity.value = 0;
-    }
-  }, [loading]);
-
-  const animatedContentStyle = useAnimatedStyle(() => ({
-    opacity: contentOpacity.value,
-  }));
-
   if (loading) {
     if (type === 'loader') {
       return (
@@ -74,9 +54,9 @@ export const LoadingWrapper: React.FC<LoadingWrapperProps> = ({
   }
 
   return (
-    <Animated.View style={[styles.flex1, animatedContentStyle]}>
+    <View style={styles.flex1}>
       {children}
-    </Animated.View>
+    </View>
   );
 };
 
