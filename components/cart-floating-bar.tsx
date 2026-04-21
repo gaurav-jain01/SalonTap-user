@@ -44,7 +44,7 @@ export const CartFloatingBar = () => {
             <View style={styles.avatarGroup}>
               {displayItems.map((item: any, index: number) => (
                 <View
-                  key={item.id}
+                  key={`${item.id}-${index}`}
                   style={[
                     styles.avatarWrapper,
                     { marginLeft: index === 0 ? 0 : -15, zIndex: displayItems.length - index }

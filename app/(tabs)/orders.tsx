@@ -7,6 +7,8 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+import { bookingService } from '@/services/bookingService';
+
 type OrderStatus = 'all' | 'upcoming' | 'completed' | 'cancelled';
 
 interface Order {
@@ -20,6 +22,17 @@ interface Order {
   image: any;
 }
 
+const statusConfig: Record<
+  string,
+  { color: string; bg: string; label: string; icon: keyof typeof Ionicons.glyphMap }
+> = {
+  PENDING: { color: '#FF9800', bg: '#FFF3E0', label: 'Pending', icon: 'time-outline' },
+  CONFIRMED: { color: '#2196F3', bg: '#E3F2FD', label: 'Confirmed', icon: 'checkmark-circle-outline' },
+  COMPLETED: { color: '#4CAF50', bg: '#E8F5E9', label: 'Completed', icon: 'checkmark-circle-outline' },
+  CANCELLED: { color: '#F44336', bg: '#FFEBEE', label: 'Cancelled', icon: 'close-circle-outline' },
+  REJECTED: { color: '#F44336', bg: '#FFEBEE', label: 'Rejected', icon: 'close-circle-outline' },
+};
+
 const STATUS_TABS: { key: OrderStatus; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'upcoming', label: 'Upcoming' },
@@ -27,56 +40,48 @@ const STATUS_TABS: { key: OrderStatus; label: string }[] = [
   { key: 'cancelled', label: 'Cancelled' },
 ];
 
-const ORDERS: Order[] = [
-  {
-    id: '1',
-    serviceName: 'Premium Haircut',
-    salonName: 'Style Studio',
-    date: '12 Mar 2026',
-    time: '10:30 AM',
-    price: '₹499',
-    status: 'upcoming',
-    image: require('@/assets/images/service_haircut.png'),
-  },
-  {
-    id: '2',
-    serviceName: 'Deep Tissue Massage',
-    salonName: 'Zen Wellness Spa',
-    date: '14 Mar 2026',
-    time: '02:00 PM',
-    price: '₹1,299',
-    status: 'upcoming',
-    image: require('@/assets/images/service_massage.png'),
-  },
-];
-
-const statusConfig: Record<
-  Order['status'],
-  { color: string; bg: string; label: string; icon: keyof typeof Ionicons.glyphMap }
-> = {
-  upcoming: { color: '#2196F3', bg: '#E3F2FD', label: 'Upcoming', icon: 'time-outline' },
-  completed: { color: '#4CAF50', bg: '#E8F5E9', label: 'Completed', icon: 'checkmark-circle-outline' },
-  cancelled: { color: '#F44336', bg: '#FFEBEE', label: 'Cancelled', icon: 'close-circle-outline' },
-};
-
 export default function OrdersScreen() {
-
   const [activeTab, setActiveTab] = useState<OrderStatus>('all');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const checkLogin = async () => {
       const token = await AsyncStorage.getItem('token');
       setIsLoggedIn(!!token);
+      if (token) {
+        fetchBookings();
+      } else {
+        setLoading(false);
+      }
     };
 
     checkLogin();
   }, []);
 
-  const filteredOrders =
-    activeTab === 'all'
-      ? ORDERS
-      : ORDERS.filter((o) => o.status === activeTab);
+  const fetchBookings = async () => {
+    try {
+      setLoading(true);
+      const response = await bookingService.getMyBookings();
+      if (response.success) {
+        console.log('BOOKINGS DATA FETCHED:', JSON.stringify(response.data, null, 2));
+        setBookings(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching bookings:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredOrders = bookings.filter((booking) => {
+    if (activeTab === 'all') return true;
+    if (activeTab === 'upcoming') return ['PENDING', 'CONFIRMED'].includes(booking.status);
+    if (activeTab === 'completed') return booking.status === 'COMPLETED';
+    if (activeTab === 'cancelled') return ['CANCELLED', 'REJECTED'].includes(booking.status);
+    return true;
+  });
 
   if (isLoggedIn === null) {
     return (
@@ -91,20 +96,16 @@ export default function OrdersScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
 
-      <ScreenHeader title="My Orders" subtitle={`${ORDERS.length} total bookings`} />
+      <ScreenHeader title="My Orders" subtitle={`${bookings.length} total bookings`} />
 
       {/* If user NOT logged in */}
       {!isLoggedIn ? (
-
         <View style={styles.emptyState}>
           <Ionicons name="person-circle-outline" size={70} color={Colors.borderMedium} />
-
           <Text style={styles.emptyTitle}>Login Required</Text>
-
           <Text style={styles.emptySubtitle}>
             Login to view your booking history
           </Text>
-
           <TouchableOpacity
             style={styles.loginButton}
             onPress={() => router.push('/login')}
@@ -112,12 +113,13 @@ export default function OrdersScreen() {
             <Text style={styles.loginButtonText}>Login</Text>
           </TouchableOpacity>
         </View>
-
+      ) : loading ? (
+        <View style={styles.centerLoader}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
       ) : (
-
         <>
           {/* Status Tabs */}
-
           <View style={styles.tabsWrapper}>
             <ScrollView
               horizontal
@@ -139,82 +141,77 @@ export default function OrdersScreen() {
           </View>
 
           {/* Orders List */}
-
           <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-
             {filteredOrders.length === 0 ? (
-
               <View style={styles.emptyState}>
                 <Ionicons name="receipt-outline" size={64} color={Colors.borderMedium} />
-
                 <Text style={styles.emptyTitle}>No orders yet</Text>
-
                 <Text style={styles.emptySubtitle}>
                   Your bookings will appear here
                 </Text>
               </View>
-
             ) : (
-
-              filteredOrders.map((order) => {
-
-                const config = statusConfig[order.status];
+              filteredOrders.map((booking) => {
+                const config = statusConfig[booking.status] || statusConfig.PENDING;
+                const price = `₹${booking.finalAmount || 0}`;
 
                 return (
-
-                  <TouchableOpacity key={order.id} style={styles.orderCard}>
-
-                    <Image source={order.image} style={styles.orderImage} />
+                  <TouchableOpacity 
+                    key={booking._id} 
+                    style={styles.orderCard}
+                    onPress={() => router.push(`/booking-details/${booking._id}`)}
+                  >
+                    <Image 
+                      source={booking.image ? { uri: booking.image } : require('@/assets/images/service_haircut.png')} 
+                      style={styles.orderImage} 
+                    />
 
                     <View style={styles.orderInfo}>
-
-                      <Text style={styles.orderService}>{order.serviceName}</Text>
-
-                      <View style={styles.orderRow}>
-                        <Ionicons name="storefront-outline" size={13} color={Colors.textMuted} />
-                        <Text style={styles.orderSalon}>{order.salonName}</Text>
-                      </View>
-
-                      <View style={styles.orderRow}>
-                        <Ionicons name="calendar-outline" size={13} color={Colors.textMuted} />
-                        <Text style={styles.orderDetail}>{order.date}</Text>
-
-                        <Ionicons
-                          name="time-outline"
-                          size={13}
-                          color={Colors.textMuted}
-                          style={{ marginLeft: 8 }}
-                        />
-                        <Text style={styles.orderDetail}>{order.time}</Text>
-                      </View>
-
-                      <View style={styles.orderBottom}>
-
-                        <Text style={styles.orderPrice}>{order.price}</Text>
-
+                      <View style={styles.orderHeader}>
+                        <Text style={styles.orderService} numberOfLines={1}>{booking.title}</Text>
                         <View style={[styles.statusBadge, { backgroundColor: config.bg }]}>
-                          <Ionicons name={config.icon} size={12} color={config.color} />
                           <Text style={[styles.statusText, { color: config.color }]}>
                             {config.label}
                           </Text>
                         </View>
-
                       </View>
 
+                      <View style={styles.orderMid}>
+                        <View style={styles.orderRow}>
+                          <Ionicons name="person-outline" size={13} color={Colors.textMuted} />
+                          <Text style={styles.orderSalon}>{booking.providerName || 'Specialist'}</Text>
+                        </View>
+
+                        <View style={styles.orderRow}>
+                          <Ionicons name="calendar-outline" size={13} color={Colors.textMuted} />
+                          <Text style={styles.orderDetail}>{booking.bookingDate}</Text>
+                          <Ionicons
+                            name="time-outline"
+                            size={13}
+                            color={Colors.textMuted}
+                            style={{ marginLeft: 8 }}
+                          />
+                          <Text style={styles.orderDetail}>{booking.startTime}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.orderFooter}>
+                        <Text style={styles.orderPrice}>{price}</Text>
+                        <TouchableOpacity 
+                          style={styles.detailsBtn}
+                          onPress={() => router.push(`/booking-details/${booking._id}`)}
+                        >
+                          <Text style={styles.detailsBtnText}>View Details</Text>
+                          <Ionicons name="chevron-forward" size={14} color={Colors.primary} />
+                        </TouchableOpacity>
+                      </View>
                     </View>
-
                   </TouchableOpacity>
-
                 );
-
               })
-
             )}
-
           </ScrollView>
-
         </>
-
       )}
 
     </SafeAreaView>
@@ -308,72 +305,102 @@ const styles = StyleSheet.create({
   orderCard: {
     flexDirection: 'row',
     backgroundColor: Colors.white,
-    borderRadius: BorderRadius.md,
+    borderRadius: 24,
     overflow: 'hidden',
-    marginBottom: Spacing.md,
-    ...Shadows.sm,
+    marginBottom: Spacing.lg,
+    ...Shadows.md,
+    height: 140,
+    borderWidth: 1,
+    borderColor: 'rgba(0,0,0,0.02)',
   },
 
   orderImage: {
-    width: 100,
+    width: 110,
     height: '100%',
-    minHeight: 120,
+    backgroundColor: Colors.backgroundTertiary,
   },
 
   orderInfo: {
     flex: 1,
-    padding: Spacing.md,
+    padding: 14,
     justifyContent: 'space-between',
   },
 
+  orderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: 8,
+  },
+
   orderService: {
+    flex: 1,
     fontSize: 15,
-    fontWeight: '700',
+    fontWeight: '800',
     color: Colors.dark,
+  },
+
+  orderMid: {
+    gap: 4,
   },
 
   orderRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
 
   orderSalon: {
     fontSize: 13,
     color: Colors.textSecondary,
-    marginLeft: 4,
+    fontWeight: '600',
   },
 
   orderDetail: {
     fontSize: 12,
     color: Colors.textMuted,
-    marginLeft: 4,
+    fontWeight: '500',
   },
 
-  orderBottom: {
+  orderFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    marginTop: 4,
   },
 
   orderPrice: {
     fontSize: 16,
+    fontWeight: '900',
+    color: Colors.primary,
+  },
+
+  detailsBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+    backgroundColor: Colors.primary + '10',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 10,
+  },
+
+  detailsBtnText: {
+    fontSize: 11,
     fontWeight: '800',
     color: Colors.primary,
   },
 
   statusBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
     paddingHorizontal: 8,
     paddingVertical: 4,
-    borderRadius: 12,
+    borderRadius: 8,
   },
 
   statusText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
 
 });

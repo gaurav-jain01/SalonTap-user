@@ -2,7 +2,7 @@ import { BorderRadius, Colors, Shadows, Spacing, Typography } from '@/constants/
 import { useCart } from '@/contexts/cart-context';
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Dimensions, Image, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from 'react-native';
 import { Animated } from 'react-native';
 
 const cardWidth = (Dimensions.get('window').width - Spacing.xl * 2 - Spacing.md) / 2;
@@ -35,19 +35,30 @@ export function ServiceCard({ item, onPress, onAddToCart, onRemoveFromCart }: Se
   
   const scaleAnim = React.useRef(new Animated.Value(1)).current;
 
-  const handleAdd = () => {
-    Animated.sequence([
-      Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
-      Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
-    ]).start();
+  const [adding, setAdding] = useState(false);
 
-    addToCart({
-      id: item.id,
-      name: item.name,
-      price: parseFloat(item.salePrice.replace(/[^0-9.]/g, '')),
-      image: item.image,
-    });
-    onAddToCart?.(true);
+  const handleAdd = async () => {
+    if (adding) return;
+    
+    try {
+      setAdding(true);
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 0.95, duration: 100, useNativeDriver: true }),
+        Animated.spring(scaleAnim, { toValue: 1, friction: 3, useNativeDriver: true }),
+      ]).start();
+
+      await addToCart({
+        id: item.id,
+        name: item.name,
+        price: parseFloat(item.salePrice.replace(/[^0-9.]/g, '')),
+        image: item.image,
+      });
+      onAddToCart?.(true);
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+    } finally {
+      setAdding(false);
+    }
   };
 
   const handleRemove = () => {
@@ -78,8 +89,13 @@ export function ServiceCard({ item, onPress, onAddToCart, onRemoveFromCart }: Se
                 style={styles.addButton} 
                 onPress={handleAdd}
                 activeOpacity={0.8}
+                disabled={adding}
               >
-                <Text style={styles.addText}>ADD</Text>
+                {adding ? (
+                  <ActivityIndicator size="small" color="#007084" />
+                ) : (
+                  <Text style={styles.addText}>ADD</Text>
+                )}
               </TouchableOpacity>
             ) : (
               <View style={styles.quantityBar}>

@@ -160,6 +160,7 @@ export default function SubCategoriesScreen() {
         title={name || 'Sub Categories'}
         showBackButton
         onBackPress={() => router.back()}
+        showCartButton={true}
       />
 
       <LoadingWrapper loading={loading} type="skeleton" skeletonType="grid" count={6}>

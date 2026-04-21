@@ -22,5 +22,18 @@ export const ApiEndpoints = {
     update: `${BASE_URL}/address`,
     delete: `${BASE_URL}/address`,
   },
-  // Add more endpoints as needed
+  bookings: {
+    checkout: `${BASE_URL}/bookings`,
+    myBookings: `${BASE_URL}/bookings`,
+    cancel: (id: string) => `${BASE_URL}/bookings/cancel/${id}`,
+    detail: (id: string) => `${BASE_URL}/bookings/${id}`,
+    applyCoupon: `${BASE_URL}/bookings/apply-coupon`,
+    availableCoupons: `${BASE_URL}/bookings/available-coupons`,
+  },
+  cart: {
+    add: `${BASE_URL}/cart/add`,
+    get: `${BASE_URL}/cart`,
+    remove: (serviceId: string) => `${BASE_URL}/cart/remove/${serviceId}`,
+    clear: `${BASE_URL}/cart/clear`,
+  },
 };

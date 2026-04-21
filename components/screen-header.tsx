@@ -4,19 +4,24 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { Colors, Spacing, Shadows } from '@/constants/theme';
 
+import { useCart } from '@/contexts/cart-context';
+
 interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
   showBackButton?: boolean;
   onBackPress?: () => void;
+  showCartButton?: boolean;
 }
 
 export function ScreenHeader({ 
   title, 
   subtitle, 
   showBackButton = true,
-  onBackPress 
+  onBackPress,
+  showCartButton = false
 }: ScreenHeaderProps) {
+  const { totalItems } = useCart();
   const handleBack = () => {
     if (onBackPress) {
       onBackPress();
@@ -38,6 +43,17 @@ export function ScreenHeader({
         <Text style={styles.headerTitle}>{title}</Text>
         {subtitle && <Text style={styles.headerSubtitle}>{subtitle}</Text>}
       </View>
+      {showCartButton && totalItems > 0 && (
+        <TouchableOpacity 
+          onPress={() => router.push('/cart')} 
+          style={styles.cartButton}
+        >
+          <Ionicons name="cart-outline" size={24} color={Colors.dark} />
+          <View style={styles.badge}>
+            <Text style={styles.badgeText}>{totalItems}</Text>
+          </View>
+        </TouchableOpacity>
+      )}
     </View>
   );
 }
@@ -70,5 +86,28 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: Colors.textMuted,
     marginTop: 2,
+  },
+  cartButton: {
+    padding: 8,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    minWidth: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 2,
+    borderWidth: 1.5,
+    borderColor: Colors.white,
+  },
+  badgeText: {
+    color: Colors.white,
+    fontSize: 8,
+    fontWeight: '900',
   },
 });

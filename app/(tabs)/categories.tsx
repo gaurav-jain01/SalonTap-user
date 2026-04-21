@@ -52,7 +52,7 @@ export default function CategoriesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
-      <ScreenHeader title="Categories" subtitle="Browse all services" />
+      <ScreenHeader title="Categories" subtitle="Browse all services" showCartButton={true} />
 
       <LoadingWrapper loading={loading} type="skeleton" skeletonType="grid" count={9}>
         <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

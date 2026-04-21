@@ -26,8 +26,10 @@ import { apiClient } from '@/services/apiClient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from 'react-native';
 import { LoadingWrapper } from '@/components/loading/loading-wrapper';
+import { useCart } from '@/contexts/cart-context';
 
 export default function HomeScreen() {
+  const { totalItems } = useCart();
   const [selectedGender, setSelectedGender] = useState<Gender>('women');
   const [address, setAddress] = useState('Fetching location...');
   const [locLoading, setLocLoading] = useState(true);
@@ -172,6 +174,17 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.rightSection}>
+          {totalItems > 0 && (
+            <View style={{ position: 'relative' }}>
+              <CircleIconButton
+                name="cart-outline"
+                onPress={() => router.push('/cart')}
+              />
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{totalItems}</Text>
+              </View>
+            </View>
+          )}
           <CircleIconButton
             name="wallet-outline"
             onPress={() => requireLogin('/wallet')}
@@ -433,5 +446,24 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: Colors.textSecondary,
     fontWeight: '500',
+  },
+  badge: {
+    position: 'absolute',
+    right: -4,
+    top: -4,
+    backgroundColor: Colors.primary,
+    borderRadius: 10,
+    width: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: Colors.white,
+    zIndex: 1,
+  },
+  badgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: '900',
   },
 });

@@ -2,8 +2,11 @@ import { ScreenHeader } from '@/components/screen-header';
 import { Colors, Shadows, Spacing } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { useState } from 'react';
+import { ApiEndpoints } from '@/constants/ApiEndpoints';
 import {
+  ActivityIndicator,
   Alert,
   LayoutAnimation,
   Platform,
@@ -38,12 +41,46 @@ const savedAddressesData = [
 ];
 
 export default function AddressesScreen() {
-  const [selectedId, setSelectedId] = useState('1');
-  const [addresses, setAddresses] = useState(savedAddressesData);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [addresses, setAddresses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const handleSelect = (id: string) => {
+  React.useEffect(() => {
+    fetchAddresses();
+    loadSelectedId();
+  }, []);
+
+  const loadSelectedId = async () => {
+    const id = await AsyncStorage.getItem('selectedAddressId');
+    if (id) setSelectedId(id);
+  };
+
+  const fetchAddresses = async () => {
+    try {
+      setLoading(true);
+      const token = await AsyncStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch(ApiEndpoints.address.list, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        setAddresses(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching addresses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSelect = async (id: string) => {
     LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSelectedId(id);
+    await AsyncStorage.getItem('selectedAddressId'); // Just checking if it works, actually we should set it
+    await AsyncStorage.setItem('selectedAddressId', id);
   };
 
   const handleDelete = (id: string) => {
@@ -86,58 +123,68 @@ export default function AddressesScreen() {
             </TouchableOpacity>
           </View>
 
-          {addresses.map((item) => (
-            <TouchableOpacity
-              key={item.id}
-              style={[styles.addressCard, selectedId === item.id && styles.selectedCard]}
-              onPress={() => handleSelect(item.id)}
-              activeOpacity={0.8}
-            >
-              {/* Left Icon */}
-              <View style={[styles.iconBox, selectedId === item.id && styles.selectedIconBox]}>
-                <Ionicons
-                  name={item.icon as any}
-                  size={20}
-                  color={selectedId === item.id ? Colors.white : Colors.primary}
-                />
-              </View>
-
-              {/* Middle Info */}
-              <View style={styles.addressInfo}>
-                <View style={styles.tagRow}>
-                  <Text style={styles.tagText}>{item.tag}</Text>
-                  {selectedId === item.id && (
-                    <View style={styles.selectedBadge}>
-                      <Ionicons name="checkmark-circle" size={10} color={Colors.white} />
-                      <Text style={styles.selectedBadgeText}>SELECTED</Text>
-                    </View>
-                  )}
-                </View>
-                <Text style={styles.mainAddrText} numberOfLines={1}>{item.address}</Text>
-                <Text style={styles.fullAddrText} numberOfLines={2}>{item.fullAddress}</Text>
-              </View>
-
-              {/* Right Column: Radio Button + Actions */}
-              <View style={styles.actionColumn}>
-                <View style={styles.selectArea}>
-                  {selectedId === item.id ? (
-                    <Ionicons name="radio-button-on" size={22} color={Colors.primary} />
-                  ) : (
-                    <Ionicons name="radio-button-off" size={22} color={Colors.border} />
-                  )}
+          {loading ? (
+            <ActivityIndicator color={Colors.primary} style={{ marginTop: 20 }} />
+          ) : addresses.length === 0 ? (
+            <Text style={{ textAlign: 'center', color: Colors.textMuted, marginTop: 20 }}>No saved addresses found.</Text>
+          ) : (
+            addresses.map((item) => (
+              <TouchableOpacity
+                key={item._id}
+                style={[styles.addressCard, selectedId === item._id && styles.selectedCard]}
+                onPress={() => handleSelect(item._id)}
+                activeOpacity={0.8}
+              >
+                {/* Left Icon based on addressType */}
+                <View style={[styles.iconBox, selectedId === item._id && styles.selectedIconBox]}>
+                  <Ionicons
+                    name={item.label?.toLowerCase() === 'work' ? 'briefcase-outline' : 'home-outline'}
+                    size={20}
+                    color={selectedId === item._id ? Colors.white : Colors.primary}
+                  />
                 </View>
 
-                <View style={styles.editDeleteRow}>
-                  <TouchableOpacity onPress={() => handleEdit(item.id)} style={styles.actionBtn}>
-                    <Ionicons name="pencil-outline" size={14} color={Colors.textSecondary} />
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(item.id)} style={styles.actionBtn}>
-                    <Ionicons name="trash-outline" size={14} color={Colors.error} />
-                  </TouchableOpacity>
+                {/* Middle Info */}
+                <View style={styles.addressInfo}>
+                  <View style={styles.tagRow}>
+                    <Text style={styles.tagText}>{item.label || 'Other'}</Text>
+                    {selectedId === item._id && (
+                      <View style={styles.selectedBadge}>
+                        <Ionicons name="checkmark-circle" size={10} color={Colors.white} />
+                        <Text style={styles.selectedBadgeText}>SELECTED</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={styles.mainAddrText} numberOfLines={1}>
+                    {item.houseNumber ? `${item.houseNumber}, ` : ''}{item.main_text}
+                  </Text>
+                  <Text style={styles.fullAddrText} numberOfLines={2}>
+                    {item.secondary_text}
+                  </Text>
                 </View>
-              </View>
-            </TouchableOpacity>
-          ))}
+
+                {/* Right Column: Radio Button + Actions */}
+                <View style={styles.actionColumn}>
+                  <View style={styles.selectArea}>
+                    {selectedId === item._id ? (
+                      <Ionicons name="radio-button-on" size={22} color={Colors.primary} />
+                    ) : (
+                      <Ionicons name="radio-button-off" size={22} color={Colors.border} />
+                    )}
+                  </View>
+
+                  <View style={styles.editDeleteRow}>
+                    <TouchableOpacity onPress={() => handleEdit(item._id)} style={styles.actionBtn}>
+                      <Ionicons name="pencil-outline" size={14} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDelete(item._id)} style={styles.actionBtn}>
+                      <Ionicons name="trash-outline" size={14} color={Colors.error} />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))
+          )}
         </View>
       </ScrollView>
 

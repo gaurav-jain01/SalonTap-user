@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   View,
   TextInput,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
@@ -13,32 +14,49 @@ import { Ionicons } from '@expo/vector-icons';
 import { Colors, Spacing, Shadows, BorderRadius, Typography } from '@/constants/theme';
 import { ScreenHeader } from '@/components/screen-header';
 
-const availableCoupons = [
-  {
-    id: '1',
-    title: 'The Grand Appointment',
-    description: 'Save ₹150 on bookings over ₹1000',
-    code: 'GRAND150',
-    icon: 'shield-checkmark',
-  },
-  {
-    id: '2',
-    title: 'Mid-Week Serenity',
-    description: '20% off all Spa services on Tuesday - Thursday',
-    code: 'RELAX20',
-    icon: 'leaf',
-  },
-  {
-    id: '3',
-    title: 'Signature Loyalty',
-    description: 'Complimentary deep conditioning with any cut',
-    code: 'GLOSSME',
-    icon: 'star',
-  },
-];
+import { bookingService } from '@/services/bookingService';
+import { useToast } from '@/components/toast-provider';
+import { useCart } from '@/contexts/cart-context';
 
 export default function OffersScreen() {
+  const { showToast } = useToast();
+  const { totalAmount, refreshCart } = useCart();
   const [promoCode, setPromoCode] = useState('');
+  const [coupons, setCoupons] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  React.useEffect(() => {
+    fetchCoupons();
+  }, [totalAmount]);
+
+  const fetchCoupons = async () => {
+    try {
+      setLoading(true);
+      const response = await bookingService.getAvailableCoupons(totalAmount);
+      if (response.success) {
+        setCoupons(response.data as any[]);
+      }
+    } catch (error) {
+      console.error('Error fetching coupons:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleApplyCoupon = async (code: string) => {
+    try {
+      const response = await bookingService.applyCoupon(code);
+      if (response.success) {
+        showToast({ message: `Coupon ${code} applied successfully!`, type: 'success' });
+        await refreshCart();
+        router.back();
+      } else {
+        showToast({ message: 'Invalid or inapplicable coupon', type: 'error' });
+      }
+    } catch (error: any) {
+      showToast({ message: error.response?.data?.message || 'Failed to apply coupon', type: 'error' });
+    }
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -62,8 +80,12 @@ export default function OffersScreen() {
                value={promoCode}
                onChangeText={setPromoCode}
                placeholderTextColor={Colors.textLight}
+               autoCapitalize="characters"
              />
-             <TouchableOpacity style={styles.applyInlineBtn}>
+             <TouchableOpacity 
+               style={styles.applyInlineBtn}
+               onPress={() => handleApplyCoupon(promoCode)}
+             >
                <Text style={styles.applyInlineText}>Apply</Text>
              </TouchableOpacity>
           </View>
@@ -72,30 +94,43 @@ export default function OffersScreen() {
         <View style={styles.availableSection}>
           <View style={styles.availableHeader}>
             <Text style={styles.availableTitle}>Available Coupons</Text>
-            <Text style={styles.offersCount}>3 OFFERS</Text>
+            <Text style={styles.offersCount}>{coupons.length} OFFERS</Text>
           </View>
 
-          {availableCoupons.map((coupon) => (
-            <View key={coupon.id} style={styles.couponCard}>
-              <View style={styles.couponHeader}>
-                <View style={styles.couponTitleGroup}>
-                  <Text style={styles.couponTitle}>{coupon.title}</Text>
-                  <Text style={styles.couponDesc}>{coupon.description}</Text>
+          {loading ? (
+             <ActivityIndicator color={Colors.primary} style={{ marginTop: 20 }} />
+          ) : coupons.length === 0 ? (
+            <Text style={{ textAlign: 'center', color: Colors.textMuted, marginTop: 20 }}>No coupons available at the moment.</Text>
+          ) : (
+            coupons.map((coupon) => (
+              <View key={coupon._id} style={styles.couponCard}>
+                <View style={styles.couponHeader}>
+                  <View style={styles.couponTitleGroup}>
+                    <Text style={styles.couponTitle}>{coupon.code}</Text>
+                    <Text style={styles.couponDesc}>
+                      {['PERCENTAGE', 'PERCENT'].includes(coupon.discountType) ? `${coupon.discountValue}%` : `₹${coupon.discountValue}`} off on orders above ₹{coupon.minOrderAmount}
+                    </Text>
+                    {coupon.message && <Text style={[styles.couponDesc, { color: coupon.isApplicable ? Colors.success : Colors.error, marginTop: 4 }]}>{coupon.message}</Text>}
+                  </View>
+                  <Ionicons name="pricetag-outline" size={20} color={Colors.primary} opacity={0.7} />
                 </View>
-                <Ionicons name={coupon.icon as any} size={20} color={Colors.primary} opacity={0.7} />
-              </View>
 
-              <View style={styles.codeContainer}>
-                <View style={styles.codeColumn}>
-                  <Text style={styles.promoCodeLabel}>PROMO CODE</Text>
-                  <Text style={styles.promoCodeText}>{coupon.code}</Text>
+                <View style={styles.codeContainer}>
+                  <View style={styles.codeColumn}>
+                    <Text style={styles.promoCodeLabel}>PROMO CODE</Text>
+                    <Text style={styles.promoCodeText}>{coupon.code}</Text>
+                  </View>
+                  <TouchableOpacity 
+                    style={[styles.applyBtn, !coupon.isApplicable && { opacity: 0.5 }]}
+                    onPress={() => handleApplyCoupon(coupon.code)}
+                    disabled={!coupon.isApplicable}
+                  >
+                    <Text style={styles.applyBtnText}>Apply</Text>
+                  </TouchableOpacity>
                 </View>
-                <TouchableOpacity style={styles.applyBtn}>
-                  <Text style={styles.applyBtnText}>Apply</Text>
-                </TouchableOpacity>
               </View>
-            </View>
-          ))}
+            ))
+          )}
         </View>
 
         <Text style={styles.footerNote}>
