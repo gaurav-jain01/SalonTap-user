@@ -26,7 +26,7 @@ export const CartFloatingBar = () => {
   }, [bottomOffset]);
 
   // Hooks must be called before conditional returns
-  const isHiddenScreen = pathname === '/cart' || pathname === '/addresses' || pathname === '/offers';
+  const isHiddenScreen = pathname === '/cart' || pathname === '/addresses' || pathname === '/offers' || pathname === '/add-address';
   if (totalItems === 0 || isHiddenScreen) return null;
 
   // Get first few items for the avatar group

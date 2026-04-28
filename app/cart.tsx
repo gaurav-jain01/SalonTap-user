@@ -16,7 +16,8 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
+  View,
+  Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
@@ -75,6 +76,17 @@ export default function CartScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [showTimePicker, setShowTimePicker] = useState(false);
   const [notes, setNotes] = useState('');
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI' | 'CARD'>('COD');
+
+  const openPaymentModal = () => {
+    if (!selectedAddressId) {
+      showToast({ message: 'Please select an address first', type: 'warning' });
+      router.push('/addresses');
+      return;
+    }
+    setShowPaymentModal(true);
+  };
 
   const onDateChange = (event: any, selectedDate?: Date) => {
     setShowDatePicker(false);
@@ -112,7 +124,7 @@ export default function CartScreen() {
         bookingDate: bookingDate.toISOString().split('T')[0],
         startTime: bookingDate.toISOString(),
         notes: notes,
-        paymentMethod: "COD" as const
+        paymentMethod: paymentMethod as "COD"
       };
 
       console.log('CHECKOUT REQUEST DATA:', JSON.stringify(bookingData, null, 2));
@@ -332,7 +344,7 @@ export default function CartScreen() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.bookBtn, loading && { opacity: 0.7 }]}
-          onPress={handleBookService}
+          onPress={openPaymentModal}
           disabled={loading}
         >
           {loading ? (
@@ -345,6 +357,72 @@ export default function CartScreen() {
           )}
         </TouchableOpacity>
       </View>
+
+      {/* Payment Modal */}
+      <Modal
+        visible={showPaymentModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPaymentModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <TouchableOpacity style={styles.modalBlur} onPress={() => setShowPaymentModal(false)} />
+          <View style={[styles.modalContent, { paddingBottom: 40 }]}>
+            <View style={styles.modalHeader}>
+              <View style={styles.modalIndicator} />
+              <Text style={styles.modalTitle}>Select Payment Method</Text>
+            </View>
+
+            <TouchableOpacity 
+              style={[styles.paymentOption, paymentMethod === 'COD' && styles.paymentOptionSelected]}
+              onPress={() => setPaymentMethod('COD')}
+            >
+              <Ionicons name="cash-outline" size={24} color={paymentMethod === 'COD' ? Colors.primary : Colors.dark} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.paymentOptionTitle}>Cash on Delivery</Text>
+                <Text style={styles.paymentOptionSub}>Pay at the salon or after home service</Text>
+              </View>
+              <View style={styles.radioBox}>
+                {paymentMethod === 'COD' && <View style={styles.radioDot} />}
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.paymentOption, { opacity: 0.5 }]}
+              disabled={true}
+            >
+              <Ionicons name="card-outline" size={24} color={Colors.textSecondary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.paymentOptionTitle}>Credit / Debit Card</Text>
+                <Text style={styles.paymentOptionSub}>Temporarily Unavailable</Text>
+              </View>
+              <View style={styles.radioBox} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={[styles.paymentOption, { opacity: 0.5 }]}
+              disabled={true}
+            >
+              <Ionicons name="phone-portrait-outline" size={24} color={Colors.textSecondary} />
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.paymentOptionTitle}>UPI (GPay, PhonePe)</Text>
+                <Text style={styles.paymentOptionSub}>Temporarily Unavailable</Text>
+              </View>
+              <View style={styles.radioBox} />
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.confirmBtn}
+              onPress={() => {
+                setShowPaymentModal(false);
+                handleBookService();
+              }}
+            >
+              <Text style={styles.confirmBtnText}>Confirm Booking</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -840,5 +918,43 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: '800',
+  },
+  paymentOption: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 16,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: 16,
+    marginBottom: 12,
+  },
+  paymentOptionSelected: {
+    borderColor: Colors.primary,
+    backgroundColor: Colors.primary + '05',
+  },
+  paymentOptionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: Colors.dark,
+  },
+  paymentOptionSub: {
+    fontSize: 12,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  radioBox: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    borderWidth: 2,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  radioDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: Colors.primary,
   },
 });

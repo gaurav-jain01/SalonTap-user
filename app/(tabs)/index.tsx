@@ -1,9 +1,11 @@
 import { AutoScrollBanner, BannerItem } from '@/components/auto-scroll-banner';
 import { CircleIconButton } from '@/components/circle-icon-button';
 import { Gender, GenderToggle } from '@/components/gender-toggle';
+import { AppLoader } from '@/components/loading/app-loader';
 import { SectionHeader } from '@/components/section-header';
 import { ServiceCard } from '@/components/service-card';
 import { Colors, GlobalStyles, Spacing } from '@/constants/theme';
+import { useUserStore } from '@/stores/useUserStore';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import * as Location from 'expo-location';
@@ -13,48 +15,51 @@ import {
   ScrollView,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View
 } from 'react-native';
-import { AppLoader } from '@/components/loading/app-loader';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
 import { ApiEndpoints } from '@/constants/ApiEndpoints';
 import { apiClient } from '@/services/apiClient';
+import { useAddressStore } from '@/stores/userAddressStore';
 
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { Alert } from 'react-native';
 import { LoadingWrapper } from '@/components/loading/loading-wrapper';
 import { useCart } from '@/contexts/cart-context';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
+
 
 export default function HomeScreen() {
   const { totalItems } = useCart();
   const [selectedGender, setSelectedGender] = useState<Gender>('women');
   const [address, setAddress] = useState('Fetching location...');
   const [locLoading, setLocLoading] = useState(true);
+  const selectedAddress = useAddressStore((state) => state.selectedAddress);
 
   const [banners, setBanners] = useState<BannerItem[]>([]);
   const [categories, setCategories] = useState<any[]>([]);
   const [services, setServices] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const requireLogin = async (navigateTo: string) => {
-      const token = await AsyncStorage.getItem("token");
+  const { user, setUser } = useUserStore();
 
-      if (token) {
-        router.push(navigateTo as any);
-      } else {
-        Alert.alert(
-          "Login Required",
-          "Please login to continue",
-          [
-            { text: "Cancel", style: "cancel" },
-            { text: "Login", onPress: () => router.push("/login") }
-          ]
-        );
-      }
-    };
+  const requireLogin = async (navigateTo: string) => {
+    const token = await AsyncStorage.getItem("token");
+
+    if (token) {
+      router.push(navigateTo as any);
+    } else {
+      Alert.alert(
+        "Login Required",
+        "Please login to continue",
+        [
+          { text: "Cancel", style: "cancel" },
+          { text: "Login", onPress: () => router.push("/login") }
+        ]
+      );
+    }
+  };
 
   /* ---------------- LOCATION ---------------- */
 
@@ -146,23 +151,48 @@ export default function HomeScreen() {
     fetchHome();
   }, []);
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (user) return; // ✅ prevent duplicate calls
+
+        const token = await AsyncStorage.getItem("token");
+        if (!token) return;
+
+        const res = await apiClient.get(ApiEndpoints.user.profile);
+
+        const userData = res.data?.user;
+
+        setUser(userData); // 🔥 store globally
+
+      } catch (err) {
+        console.log("Profile fetch error:", err);
+      }
+    };
+
+    fetchProfile();
+  }, []);
+
   return (
     <SafeAreaView style={GlobalStyles.screenContainer} edges={['top']}>
-      
+
       {/* HEADER */}
       <View style={styles.header}>
         <View style={styles.leftSection}>
-          <Text style={styles.welcomeText}>Hi, User</Text>
+          <Text style={styles.welcomeText}>Hii, <Text style={{ fontWeight: 'bold', fontSize: 18, color: Colors.primary }}>{user?.name ?? 'User'}</Text></Text>
           <TouchableOpacity
-            style={styles.locationButton}                                                                              
+            style={styles.locationButton}
             onPress={() => router.push('/addresses')}
           >
             <Ionicons name="location-sharp" size={16} color={Colors.primary} />
             {locLoading ? (
-               <AppLoader size="small" />
+              <AppLoader size="small" />
             ) : (
+              console.log("aadresjnfgjf", selectedAddress),
               <Text style={styles.locationText} numberOfLines={1}>
-                {address}
+                {selectedAddress
+                  ? `${selectedAddress.main_text}, ${selectedAddress.secondary_text}`
+                  : "Select Address"}
               </Text>
             )}
             <Ionicons
@@ -203,8 +233,8 @@ export default function HomeScreen() {
         >
           {/* SEARCH BAR */}
           <View style={styles.searchContainer}>
-            <TouchableOpacity 
-              style={styles.searchBar} 
+            <TouchableOpacity
+              style={styles.searchBar}
               activeOpacity={0.9}
               onPress={() => router.push('/search')}
             >
@@ -219,89 +249,89 @@ export default function HomeScreen() {
           {/* GENDER TOGGLE */}
           <GenderToggle selected={selectedGender} onChange={setSelectedGender} lockMen={true} />
 
-        {selectedGender === 'men' ? (
-          <View style={styles.comingSoonContainer}>
-            <Ionicons name="time-outline" size={60} color={Colors.textMuted} />
-            <Text style={styles.comingSoonHeader}>Coming Soon!</Text>
-            <Text style={styles.comingSoonSub}>
-              Men's services are currently being onboarded. We'll notify you when they're live!
-            </Text>
-          </View>
-        ) : (
-          <>
-            {/* CATEGORIES */}
+          {selectedGender === 'men' ? (
+            <View style={styles.comingSoonContainer}>
+              <Ionicons name="time-outline" size={60} color={Colors.textMuted} />
+              <Text style={styles.comingSoonHeader}>Coming Soon!</Text>
+              <Text style={styles.comingSoonSub}>
+                Men's services are currently being onboarded. We'll notify you when they're live!
+              </Text>
+            </View>
+          ) : (
+            <>
+              {/* CATEGORIES */}
 
-            <SectionHeader
-              title="Categories"
-              showSeeAll
-              onSeeAll={() => router.push('/(tabs)/categories')}
-            />
+              <SectionHeader
+                title="Categories"
+                showSeeAll
+                onSeeAll={() => router.push('/(tabs)/categories')}
+              />
 
-            <View style={styles.categoriesGrid}>
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat._id}
-                  style={styles.categoryItem}
-                  onPress={() =>
-                    router.push({
-                      pathname: '/sub-categories/[id]',
-                      params: { id: cat._id, name: cat.name },
-                    })
-                  }
-                >
-                  <View style={styles.iconCircle}>
-                    <Image
-                      source={{ uri: cat.image }}
-                      style={styles.categoryImage}
-                      contentFit="contain"
+              <View style={styles.categoriesGrid}>
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat._id}
+                    style={styles.categoryItem}
+                    onPress={() =>
+                      router.push({
+                        pathname: '/sub-categories/[id]',
+                        params: { id: cat._id, name: cat.name },
+                      })
+                    }
+                  >
+                    <View style={styles.iconCircle}>
+                      <Image
+                        source={{ uri: cat.image }}
+                        style={styles.categoryImage}
+                        contentFit="contain"
+                      />
+                    </View>
+
+                    <Text style={styles.categoryName}>{cat.name}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+
+              {/* SERVICES */}
+
+              <SectionHeader
+                title="Popular Services"
+                showSeeAll
+                onSeeAll={() => router.push('/(tabs)/categories')}
+              />
+
+              <View style={styles.servicesGrid}>
+                {services.map((service) => {
+                  const reg = typeof service.regularPrice === 'string'
+                    ? parseFloat(service.regularPrice.replace(/[^0-9.]/g, ''))
+                    : service.regularPrice;
+                  const sale = typeof service.salePrice === 'string'
+                    ? parseFloat(service.salePrice.replace(/[^0-9.]/g, ''))
+                    : service.salePrice;
+
+                  const discountAmount = reg - sale;
+
+                  return (
+                    <ServiceCard
+                      key={service._id}
+                      item={{
+                        id: service._id,
+                        name: service.name,
+                        description: service.description || 'Professional grooming service',
+                        regularPrice: `₹${reg}`,
+                        salePrice: `₹${sale}`,
+                        duration: `${service.duration} mins`,
+                        image: service.images && service.images.length > 0 ? service.images[0] : 'https://via.placeholder.com/150',
+                        tags: [],
+                        discount: discountAmount > 0 ? `₹${discountAmount} OFF` : undefined,
+                      }}
+                      onAddToCart={() => console.log('Added to cart:', service._id)}
                     />
-                  </View>
-
-                  <Text style={styles.categoryName}>{cat.name}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            {/* SERVICES */}
-
-            <SectionHeader
-              title="Popular Services"
-              showSeeAll
-              onSeeAll={() => router.push('/(tabs)/categories')}
-            />
-
-            <View style={styles.servicesGrid}>
-              {services.map((service) => {
-                const reg = typeof service.regularPrice === 'string' 
-                  ? parseFloat(service.regularPrice.replace(/[^0-9.]/g, '')) 
-                  : service.regularPrice;
-                const sale = typeof service.salePrice === 'string' 
-                  ? parseFloat(service.salePrice.replace(/[^0-9.]/g, '')) 
-                  : service.salePrice;
-                
-                const discountAmount = reg - sale;
-                
-                return (
-                  <ServiceCard
-                    key={service._id}
-                    item={{
-                      id: service._id,
-                      name: service.name,
-                      description: service.description || 'Professional grooming service',
-                      regularPrice: `₹${reg}`,
-                      salePrice: `₹${sale}`,
-                      duration: `${service.duration} mins`,
-                      image: service.images && service.images.length > 0 ? service.images[0] : 'https://via.placeholder.com/150',
-                      tags: [],
-                      discount: discountAmount > 0 ? `₹${discountAmount} OFF` : undefined,
-                    }}
-                    onAddToCart={() => console.log('Added to cart:', service._id)}
-                  />
-                );
-              })}
-            </View>
-          </>
-        )}
+                  );
+                })}
+              </View>
+            </>
+          )}
         </ScrollView>
       </LoadingWrapper>
     </SafeAreaView>

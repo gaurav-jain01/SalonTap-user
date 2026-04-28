@@ -15,16 +15,7 @@ interface Transaction {
   method: string;
 }
 
-const TRANSACTIONS: Transaction[] = [
-  { id: '1', title: 'Wallet Top-up', date: '10 Mar 2026, 09:15 AM', amount: '+ ₹1,000', type: 'credit', icon: 'add-circle-outline', method: 'UPI' },
-  { id: '2', title: 'Premium Haircut', date: '08 Mar 2026, 11:30 AM', amount: '- ₹499', type: 'debit', icon: 'cut-outline', method: 'Wallet' },
-  { id: '3', title: 'Cashback Reward', date: '05 Mar 2026, 06:00 PM', amount: '+ ₹50', type: 'credit', icon: 'gift-outline', method: 'Promo' },
-  { id: '4', title: 'Gold Facial', date: '02 Mar 2026, 02:00 PM', amount: '- ₹899', type: 'debit', icon: 'sparkles-outline', method: 'Wallet' },
-  { id: '5', title: 'Referral Bonus', date: '28 Feb 2026, 10:00 AM', amount: '+ ₹200', type: 'credit', icon: 'people-outline', method: 'Referral' },
-  { id: '6', title: 'Deep Tissue Massage', date: '25 Feb 2026, 03:30 PM', amount: '- ₹1,299', type: 'debit', icon: 'fitness-outline', method: 'UPI' },
-  { id: '7', title: 'Nail Art', date: '20 Feb 2026, 04:00 PM', amount: '- ₹699', type: 'debit', icon: 'color-palette-outline', method: 'Wallet' },
-  { id: '8', title: 'Welcome Bonus', date: '15 Feb 2026, 12:00 PM', amount: '+ ₹100', type: 'credit', icon: 'ribbon-outline', method: 'Promo' },
-];
+const TRANSACTIONS: Transaction[] = [];
 
 export default function TransactionsScreen() {
   return (
@@ -34,35 +25,43 @@ export default function TransactionsScreen() {
       {/* Summary */}
       <View style={styles.summaryRow}>
         <View style={[styles.summaryCard, { borderLeftColor: Colors.success }]}>
-          <Text style={[styles.summaryAmount, { color: Colors.success }]}>₹1,350</Text>
+          <Text style={[styles.summaryAmount, { color: Colors.success }]}>₹0</Text>
           <Text style={styles.summaryLabel}>Total Credited</Text>
         </View>
         <View style={[styles.summaryCard, { borderLeftColor: Colors.error }]}>
-          <Text style={[styles.summaryAmount, { color: Colors.error }]}>₹3,396</Text>
+          <Text style={[styles.summaryAmount, { color: Colors.error }]}>₹0</Text>
           <Text style={styles.summaryLabel}>Total Debited</Text>
         </View>
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-        {TRANSACTIONS.map((txn, index) => (
-          <TouchableOpacity key={txn.id} style={styles.txnCard} activeOpacity={0.7}>
-            <View style={[styles.txnIcon, {
-              backgroundColor: txn.type === 'credit' ? Colors.success + '12' : Colors.error + '12',
-            }]}>
-              <Ionicons name={txn.icon} size={20} color={txn.type === 'credit' ? Colors.success : Colors.error} />
-            </View>
-            <View style={styles.txnInfo}>
-              <Text style={styles.txnTitle}>{txn.title}</Text>
-              <Text style={styles.txnDate}>{txn.date}</Text>
-              <View style={styles.txnMethodBadge}>
-                <Text style={styles.txnMethodText}>{txn.method}</Text>
+        {TRANSACTIONS.length > 0 ? (
+          TRANSACTIONS.map((txn, index) => (
+            <TouchableOpacity key={txn.id} style={styles.txnCard} activeOpacity={0.7}>
+              <View style={[styles.txnIcon, {
+                backgroundColor: txn.type === 'credit' ? Colors.success + '12' : Colors.error + '12',
+              }]}>
+                <Ionicons name={txn.icon} size={20} color={txn.type === 'credit' ? Colors.success : Colors.error} />
               </View>
-            </View>
-            <Text style={[styles.txnAmount, { color: txn.type === 'credit' ? Colors.success : Colors.error }]}>
-              {txn.amount}
-            </Text>
-          </TouchableOpacity>
-        ))}
+              <View style={styles.txnInfo}>
+                <Text style={styles.txnTitle}>{txn.title}</Text>
+                <Text style={styles.txnDate}>{txn.date}</Text>
+                <View style={styles.txnMethodBadge}>
+                  <Text style={styles.txnMethodText}>{txn.method}</Text>
+                </View>
+              </View>
+              <Text style={[styles.txnAmount, { color: txn.type === 'credit' ? Colors.success : Colors.error }]}>
+                {txn.amount}
+              </Text>
+            </TouchableOpacity>
+          ))
+        ) : (
+          <View style={styles.emptyState}>
+            <Ionicons name="receipt-outline" size={64} color={Colors.textMuted + '30'} />
+            <Text style={styles.emptyTitle}>No Transactions Yet</Text>
+            <Text style={styles.emptySubtitle}>When you make a transaction, it will appear here.</Text>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -97,4 +96,24 @@ const styles = StyleSheet.create({
   },
   txnMethodText: { fontSize: 10, fontWeight: '600', color: Colors.textMuted },
   txnAmount: { fontSize: 15, fontWeight: '700' },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingTop: 100,
+    paddingHorizontal: Spacing.xl,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: Colors.dark,
+    marginTop: Spacing.lg,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    textAlign: 'center',
+    marginTop: 8,
+    lineHeight: 20,
+  },
 });

@@ -1,10 +1,11 @@
+import { CartFloatingBar } from '@/components/cart-floating-bar';
+import { ToastProvider } from '@/components/toast-provider';
+import { CartProvider } from '@/contexts/cart-context';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+
 import 'react-native-reanimated';
-import { ToastProvider } from '@/components/toast-provider';
-import { CartProvider } from '@/contexts/cart-context';
-import { CartFloatingBar } from '@/components/cart-floating-bar';
 
 export default function RootLayout() {
   return (
@@ -12,6 +13,7 @@ export default function RootLayout() {
       <CartProvider>
         <ToastProvider>
           <Stack initialRouteName="login">
+            <Stack.Screen name="index" options={{ headerShown: false }} />
             <Stack.Screen name="login" options={{ headerShown: false }} />
             <Stack.Screen name="verify-otp" options={{ title: 'Verification', headerBackTitle: 'Back' }} />
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

@@ -9,6 +9,7 @@ export const ApiEndpoints = {
   },
   user: {
     profile: `${BASE_URL}/auth/profile`,
+    upload: `${BASE_URL}/upload/single`,
   },
   home: {
     home: `${BASE_URL}/home`,
@@ -35,5 +36,8 @@ export const ApiEndpoints = {
     get: `${BASE_URL}/cart`,
     remove: (serviceId: string) => `${BASE_URL}/cart/remove/${serviceId}`,
     clear: `${BASE_URL}/cart/clear`,
+  },
+  wallet: {
+    get: `${BASE_URL}/wallet`,
   },
 };

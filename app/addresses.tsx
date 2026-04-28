@@ -1,10 +1,11 @@
 import { ScreenHeader } from '@/components/screen-header';
+import { ApiEndpoints } from '@/constants/ApiEndpoints';
 import { Colors, Shadows, Spacing } from '@/constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { useState } from 'react';
-import { ApiEndpoints } from '@/constants/ApiEndpoints';
+import { useFocusEffect } from '@react-navigation/native';
+import { router } from 'expo-router';
+import React, { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -19,26 +20,10 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 
+
 if (Platform.OS === 'android' && UIManager.setLayoutAnimationEnabledExperimental) {
   UIManager.setLayoutAnimationEnabledExperimental(true);
 }
-
-const savedAddressesData = [
-  {
-    id: '1',
-    tag: 'Home',
-    icon: 'home-outline',
-    address: 'H-201, Royal Heights, Near City Mall',
-    fullAddress: 'Vijay Nagar, Indore, Madhya Pradesh 452010',
-  },
-  {
-    id: '2',
-    tag: 'Work',
-    icon: 'briefcase-outline',
-    address: 'Flat 402, Crystal IT Park',
-    fullAddress: 'Bhawarkua, Indore, Madhya Pradesh 452001',
-  },
-];
 
 export default function AddressesScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -49,6 +34,12 @@ export default function AddressesScreen() {
     fetchAddresses();
     loadSelectedId();
   }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchAddresses();
+    }, [])
+  );
 
   const loadSelectedId = async () => {
     const id = await AsyncStorage.getItem('selectedAddressId');
@@ -65,7 +56,7 @@ export default function AddressesScreen() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       const result = await response.json();
-      
+
       if (result.success) {
         setAddresses(result.data);
       }
@@ -92,18 +83,53 @@ export default function AddressesScreen() {
         {
           text: "Delete",
           style: "destructive",
-          onPress: () => {
-            LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
-            setAddresses(addresses.filter(a => a.id !== id));
-            if (selectedId === id) setSelectedId('');
+          onPress: async () => {
+            try {
+              const token = await AsyncStorage.getItem('token');
+              if (!token) return;
+
+              // 🔥 CALL DELETE API
+              const response = await fetch(`${ApiEndpoints.address.delete}/${id}`, {
+                method: 'DELETE',
+                headers: {
+                  'Authorization': `Bearer ${token}`,
+                  'Content-Type': 'application/json',
+                },
+              });
+
+              const result = await response.json();
+
+              if (result.success) {
+                LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+
+                // ✅ REMOVE FROM UI
+                setAddresses(prev => prev.filter(a => a._id !== id));
+
+                if (selectedId === id) {
+                  setSelectedId(null);
+                  await AsyncStorage.removeItem('selectedAddressId');
+                }
+              } else {
+                Alert.alert("Error", result.message || "Failed to delete address");
+              }
+            } catch (error) {
+              console.error("Delete error:", error);
+              Alert.alert("Error", "Something went wrong");
+            }
           }
         }
       ]
     );
   };
 
-  const handleEdit = (id: string) => {
-    router.push('/add-address');
+  const handleEdit = (item: any) => {
+    router.push({
+      pathname: '/add-address',
+      params: {
+        address: JSON.stringify(item),
+        isEdit: 'true'
+      }
+    });
   };
 
   return (
@@ -138,7 +164,7 @@ export default function AddressesScreen() {
                 {/* Left Icon based on addressType */}
                 <View style={[styles.iconBox, selectedId === item._id && styles.selectedIconBox]}>
                   <Ionicons
-                    name={item.label?.toLowerCase() === 'work' ? 'briefcase-outline' : 'home-outline'}
+                    name={item.label?.toLowerCase() === 'office' ? 'briefcase-outline' : 'home-outline'}
                     size={20}
                     color={selectedId === item._id ? Colors.white : Colors.primary}
                   />
@@ -174,7 +200,7 @@ export default function AddressesScreen() {
                   </View>
 
                   <View style={styles.editDeleteRow}>
-                    <TouchableOpacity onPress={() => handleEdit(item._id)} style={styles.actionBtn}>
+                    <TouchableOpacity onPress={() => handleEdit(item)} style={styles.actionBtn}>
                       <Ionicons name="pencil-outline" size={14} color={Colors.textSecondary} />
                     </TouchableOpacity>
                     <TouchableOpacity onPress={() => handleDelete(item._id)} style={styles.actionBtn}>

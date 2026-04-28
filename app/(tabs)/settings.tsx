@@ -1,6 +1,7 @@
 import { ScreenHeader } from '@/components/screen-header';
 import { useToast } from '@/components/toast-provider';
 import { BorderRadius, Colors, Shadows, Spacing } from '@/constants/theme';
+import { useUserStore } from '@/stores/useUserStore';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
@@ -15,18 +16,19 @@ const settingsOptions: {
   route?: string;
   requiresAuth?: boolean;
 }[] = [
-  { id: '1', title: 'Profile', icon: 'person-outline', route: '/profile', requiresAuth: true },
-  { id: '2', title: 'Wallet', icon: 'wallet-outline', route: '/wallet', requiresAuth: true },
-  { id: '3', title: 'Transactions', icon: 'receipt-outline', route: '/transactions', requiresAuth: true },
-  { id: '4', title: 'Help', icon: 'help-circle-outline', route: '/help' },
-  { id: '5', title: 'Privacy Policy', icon: 'shield-checkmark-outline', route: '/privacy-policy' },
-  { id: '6', title: 'Terms & Conditions', icon: 'document-text-outline', route: '/terms-conditions' },
-];
+    { id: '1', title: 'Profile', icon: 'person-outline', route: '/profile', requiresAuth: true },
+    { id: '2', title: 'Wallet', icon: 'wallet-outline', route: '/wallet', requiresAuth: true },
+    { id: '3', title: 'Transactions', icon: 'receipt-outline', route: '/transactions', requiresAuth: true },
+    { id: '4', title: 'Help', icon: 'help-circle-outline', route: '/help' },
+    { id: '5', title: 'Privacy Policy', icon: 'shield-checkmark-outline', route: '/privacy-policy' },
+    { id: '6', title: 'Terms & Conditions', icon: 'document-text-outline', route: '/terms-conditions' },
+  ];
 
 export default function SettingsScreen() {
 
   const { showToast } = useToast();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { user } = useUserStore();
 
   useEffect(() => {
     checkLogin();
@@ -122,8 +124,8 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>User</Text>
-            <Text style={styles.profilePhone}>+91 98765 43210</Text>
+            <Text style={styles.profileName}>{user?.name}a</Text>
+            <Text style={styles.profilePhone}>{user?.mobile}</Text>
           </View>
 
           <Ionicons name="chevron-forward" size={20} color={Colors.textLight} />

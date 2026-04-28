@@ -1,9 +1,12 @@
-import { StyleSheet, View, Text, TouchableOpacity, ScrollView } from 'react-native';
-import { router } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, Spacing, Shadows, BorderRadius } from '@/constants/theme';
 import { ScreenHeader } from '@/components/screen-header';
+import { ApiEndpoints } from '@/constants/ApiEndpoints';
+import { BorderRadius, Colors, Shadows, Spacing } from '@/constants/theme';
+import { apiClient } from '@/services/apiClient';
+import { Ionicons } from '@expo/vector-icons';
+import { router } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 
 interface Transaction {
   id: string;
@@ -14,16 +17,29 @@ interface Transaction {
   icon: keyof typeof Ionicons.glyphMap;
 }
 
-const TRANSACTIONS: Transaction[] = [
-  { id: '1', title: 'Wallet Top-up', date: '10 Mar 2026', amount: '+ ₹1,000', type: 'credit', icon: 'add-circle-outline' },
-  { id: '2', title: 'Premium Haircut', date: '08 Mar 2026', amount: '- ₹499', type: 'debit', icon: 'cut-outline' },
-  { id: '3', title: 'Cashback Reward', date: '05 Mar 2026', amount: '+ ₹50', type: 'credit', icon: 'gift-outline' },
-  { id: '4', title: 'Gold Facial', date: '02 Mar 2026', amount: '- ₹899', type: 'debit', icon: 'sparkles-outline' },
-  { id: '5', title: 'Referral Bonus', date: '28 Feb 2026', amount: '+ ₹200', type: 'credit', icon: 'people-outline' },
-  { id: '6', title: 'Deep Tissue Massage', date: '25 Feb 2026', amount: '- ₹1,299', type: 'debit', icon: 'fitness-outline' },
-];
+const TRANSACTIONS: Transaction[] = [];
 
 export default function WalletScreen() {
+  const [wallet, setWallet] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const getWallet = async () => {
+    try {
+      setLoading(true);
+      const response = await apiClient.get(ApiEndpoints.wallet.get);
+      if (response.data?.success) {
+        setWallet(response.data.data);
+      }
+    } catch (error) {
+      console.log("Wallet API error:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    getWallet();
+  }, []);
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* Header */}
@@ -34,14 +50,26 @@ export default function WalletScreen() {
         {/* Balance Card */}
         <View style={styles.balanceCard}>
           <View style={styles.balanceTop}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={styles.balanceLabel}>Available Balance</Text>
-              <Text style={styles.balanceAmount}>₹2,553</Text>
+              {loading ? (
+                <ActivityIndicator color={Colors.white} size="small" style={{ alignSelf: 'flex-start', marginTop: 10 }} />
+              ) : (
+                <Text style={styles.balanceAmount}>₹{wallet?.balance?.available || 0}</Text>
+              )}
             </View>
             <View style={styles.walletIcon}>
               <Ionicons name="wallet" size={32} color={Colors.white} />
             </View>
           </View>
+
+          {/* Hold Balance */}
+          {!loading && wallet?.balance?.hold > 0 && (
+            <View style={styles.holdRow}>
+              <Ionicons name="time-outline" size={16} color="rgba(255,255,255,0.8)" />
+              <Text style={styles.holdText}>₹{wallet.balance.hold} on hold</Text>
+            </View>
+          )}
 
           <View style={styles.balanceActions}>
             <TouchableOpacity style={styles.balanceBtn} activeOpacity={0.8}>
@@ -55,66 +83,50 @@ export default function WalletScreen() {
           </View>
         </View>
 
-        {/* Quick Stats */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: Colors.success + '15' }]}>
-              <Ionicons name="trending-up" size={20} color={Colors.success} />
-            </View>
-            <Text style={styles.statAmount}>₹1,250</Text>
-            <Text style={styles.statLabel}>Total Earned</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: Colors.error + '15' }]}>
-              <Ionicons name="trending-down" size={20} color={Colors.error} />
-            </View>
-            <Text style={styles.statAmount}>₹2,697</Text>
-            <Text style={styles.statLabel}>Total Spent</Text>
-          </View>
-          <View style={styles.statCard}>
-            <View style={[styles.statIcon, { backgroundColor: Colors.warning + '15' }]}>
-              <Ionicons name="gift" size={20} color={Colors.warning} />
-            </View>
-            <Text style={styles.statAmount}>₹250</Text>
-            <Text style={styles.statLabel}>Rewards</Text>
-          </View>
-        </View>
-
         {/* Transactions */}
         <View style={styles.transactionCard}>
           <View style={styles.transactionHeader}>
             <Text style={styles.transactionTitle}>Recent Transactions</Text>
-            <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/transactions')}>
-              <Text style={styles.seeAllText}>See All →</Text>
-            </TouchableOpacity>
+            {TRANSACTIONS.length > 0 && (
+              <TouchableOpacity activeOpacity={0.7} onPress={() => router.push('/transactions')}>
+                <Text style={styles.seeAllText}>See All →</Text>
+              </TouchableOpacity>
+            )}
           </View>
 
-          {TRANSACTIONS.map((txn, index) => (
-            <View
-              key={txn.id}
-              style={[styles.txnRow, index < TRANSACTIONS.length - 1 && styles.txnBorder]}
-            >
-              <View style={[styles.txnIcon, {
-                backgroundColor: txn.type === 'credit' ? Colors.success + '12' : Colors.error + '12',
-              }]}>
-                <Ionicons
-                  name={txn.icon}
-                  size={18}
-                  color={txn.type === 'credit' ? Colors.success : Colors.error}
-                />
+          {TRANSACTIONS.length > 0 ? (
+            TRANSACTIONS.map((txn, index) => (
+              <View
+                key={txn.id}
+                style={[styles.txnRow, index < TRANSACTIONS.length - 1 && styles.txnBorder]}
+              >
+                <View style={[styles.txnIcon, {
+                  backgroundColor: txn.type === 'credit' ? Colors.success + '12' : Colors.error + '12',
+                }]}>
+                  <Ionicons
+                    name={txn.icon}
+                    size={18}
+                    color={txn.type === 'credit' ? Colors.success : Colors.error}
+                  />
+                </View>
+                <View style={styles.txnInfo}>
+                  <Text style={styles.txnTitle}>{txn.title}</Text>
+                  <Text style={styles.txnDate}>{txn.date}</Text>
+                </View>
+                <Text style={[
+                  styles.txnAmount,
+                  { color: txn.type === 'credit' ? Colors.success : Colors.error }
+                ]}>
+                  {txn.amount}
+                </Text>
               </View>
-              <View style={styles.txnInfo}>
-                <Text style={styles.txnTitle}>{txn.title}</Text>
-                <Text style={styles.txnDate}>{txn.date}</Text>
-              </View>
-              <Text style={[
-                styles.txnAmount,
-                { color: txn.type === 'credit' ? Colors.success : Colors.error }
-              ]}>
-                {txn.amount}
-              </Text>
+            ))
+          ) : (
+            <View style={styles.emptyState}>
+              <Ionicons name="document-text-outline" size={48} color={Colors.textMuted + '40'} />
+              <Text style={styles.emptyText}>No transactions yet</Text>
             </View>
-          ))}
+          )}
         </View>
 
       </ScrollView>
@@ -155,6 +167,23 @@ const styles = StyleSheet.create({
     fontSize: 36,
     fontWeight: '800',
     color: Colors.white,
+  },
+  holdRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: 'rgba(0,0,0,0.1)',
+    alignSelf: 'flex-start',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    marginBottom: Spacing.xl,
+    marginTop: -Spacing.md,
+  },
+  holdText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: 'rgba(255,255,255,0.9)',
   },
   walletIcon: {
     width: 56,
@@ -230,10 +259,8 @@ const styles = StyleSheet.create({
 
   // Transactions
   transactionCard: {
-    backgroundColor: Colors.white,
     borderRadius: BorderRadius.md,
-    padding: Spacing.lg,
-    ...Shadows.sm,
+    padding: Spacing.lg
   },
   transactionHeader: {
     flexDirection: 'row',
@@ -284,5 +311,16 @@ const styles = StyleSheet.create({
   txnAmount: {
     fontSize: 15,
     fontWeight: '700',
+  },
+  emptyState: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 40,
+    gap: 10,
+  },
+  emptyText: {
+    fontSize: 14,
+    color: Colors.textMuted,
+    fontWeight: '500',
   },
 });

@@ -10,7 +10,7 @@ export const apiClient = axios.create({
   },
 });
 
-// Attach token automatically
+
 apiClient.interceptors.request.use(
   async (config) => {
     const token = await AsyncStorage.getItem("token");
